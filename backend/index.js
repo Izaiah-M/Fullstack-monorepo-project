@@ -2,13 +2,13 @@ import { MongoClient } from "mongodb";
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import Session from "./src/session.js";
-import AuthRoutes from "./src/routes/auth.js";
-import UserRoutes from "./src/routes/user.js";
-import ProjectRoutes from "./src/routes/projects.js";
-import FileRoutes from "./src/routes/files.js";
-import CommentRoutes from "./src/routes/comments.js";
-import { errorHandler } from "./src/errors.js";
+import Session from "./src/utils/session.js";
+import AuthRoutes from "./src/modules/auth/auth.routes.js";
+import UserRoutes from "./src/modules/user/user.routes.js";
+import ProjectRoutes from "./src/modules/projects/project.route.js";
+import FileRoutes from "./src/modules/files/files.routes.js";
+import CommentRoutes from "./src/modules/comments/comments.routes.js";
+import { errorHandler } from "./src/utils/errors.js";
 
 async function main() {
   const client = new MongoClient(process.env.MONGO_URI);
