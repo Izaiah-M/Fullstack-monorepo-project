@@ -5,7 +5,7 @@ import cookieParser from "cookie-parser";
 import Session from "./src/utils/session.js";
 import AuthRoutes from "./src/modules/auth/auth.routes.js";
 import UserRoutes from "./src/modules/user/user.routes.js";
-import ProjectRoutes from "./src/modules/projects/project.route.js";
+import ProjectRoutes from "./src/modules/projects/project.routes.js";
 import FileRoutes from "./src/modules/files/files.routes.js";
 import CommentRoutes from "./src/modules/comments/comments.routes.js";
 import { errorHandler } from "./src/utils/errors.js";
