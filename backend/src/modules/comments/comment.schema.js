@@ -5,9 +5,22 @@ export const GetCommentsQuerySchema = z.object({
   fileId: StringObjectId,
 });
 
+// TODO: update this schema to support both new comments and replies
 export const CreateCommentBodySchema = z.object({
   fileId: StringObjectId,
   body: z.string(),
-  x: z.number().min(0).max(100),
-  y: z.number().min(0).max(100),
+  // Make coordinates optional
+  x: z.number().min(0).max(100).optional(),
+  y: z.number().min(0).max(100).optional(),
+  // Add parentId as an optional field for replies
+  parentId: StringObjectId.optional(),
+}).refine((data) => {
+  // If parentId exists (it's a reply), here coordinates are not required
+  if (data.parentId) {
+    return true;
+  }
+  // If it's a top-level comment, coordinates are required
+  return data.x !== undefined && data.y !== undefined;
+}, {
+  message: "Coordinates (x, y) are required for top-level comments"
 });

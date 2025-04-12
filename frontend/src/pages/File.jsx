@@ -13,6 +13,7 @@ import {
   CardHeader,
   CardContent,
   Typography,
+  CardActions
 } from "@mui/material";
 import { useSelectedFile } from "../hooks/files";
 import { useTheme } from "@mui/material/styles";
@@ -22,15 +23,38 @@ import { useUser } from "../hooks/users";
 import UserAvatar from "../components/UserAvatar";
 import Loading from "../pages/Loading";
 
-const CommentCard = ({ comment }) => {
+const CommentCard = ({ comment, isReply = false }) => {
   const { isLoading, data: author } = useUser(comment.authorId);
+  const [open, setOpen] = useState(false);
+  const createComment = useCreateComment({ fileId: comment.fileId });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    createComment.mutate(
+      {
+        fileId: comment.fileId,
+        body: e.target.elements.body.value,
+        parentId: comment._id, // Add parentId to create a reply
+      },
+      { 
+        onSuccess: () => setOpen(false) 
+      },
+    );
+  };
 
   if (isLoading) {
-    return;
+    return null;
   }
 
   return (
-    <Card variant="outlined" sx={{ mb: 2 }}>
+    <Card 
+      variant="outlined" 
+      sx={{ 
+        mb: 2,
+        ml: isReply ? 4 : 0,  // Apply indentation for replies
+        borderLeft: isReply ? "4px solid #90caf9" : undefined // Visual indicator for replies with standard MUI blue color
+      }}
+    >
       <CardHeader
         avatar={<UserAvatar userId={author._id} />}
         title={author.email}
@@ -39,12 +63,85 @@ const CommentCard = ({ comment }) => {
       <CardContent>
         <Typography variant="body1">{comment.body}</Typography>
       </CardContent>
+      <CardActions>
+        <Button size="small" onClick={() => setOpen(true)}>Reply</Button>
+      </CardActions>
+      <Dialog open={open} onClose={() => setOpen(false)}>
+        <Box component="form" onSubmit={handleSubmit}>
+          <DialogTitle>Reply to Comment</DialogTitle>
+          <DialogContent>
+            <TextField
+              autoFocus
+              margin="dense"
+              label="Comment"
+              name="body"
+              fullWidth
+              multiline
+              rows={3}
+              required
+            />
+            {createComment.isError && (
+              <Typography color="error">
+                {createComment.error.message}
+              </Typography>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="contained" color="primary">
+              Submit
+            </Button>
+          </DialogActions>
+        </Box>
+      </Dialog>
     </Card>
   );
 };
 
 const CommentBar = ({ fileId }) => {
-  const { data: comments } = useComments({ fileId });
+  const { data: comments = [] } = useComments({ fileId });
+  
+  // Organize comments into parent comments and their replies
+  const organizeComments = (comments) => {
+    const parentComments = [];
+    const repliesMap = {};
+    
+    // First, separate parents and replies
+    comments.forEach(comment => {
+      if (comment.parentId) {
+        if (!repliesMap[comment.parentId]) {
+          repliesMap[comment.parentId] = [];
+        }
+        repliesMap[comment.parentId].push(comment);
+      } else {
+        parentComments.push(comment);
+      }
+    });
+    
+    return { parentComments, repliesMap };
+  };
+  
+  const renderCommentThread = (comment, repliesMap) => {
+    const replies = repliesMap[comment._id] || [];
+    
+    return (
+      <Box key={comment._id} sx={{ mb: 3 }}>
+        <CommentCard comment={comment} />
+        
+        {replies.map(reply => (
+          <CommentCard 
+            key={reply._id} 
+            comment={reply} 
+            isReply={true} 
+          />
+        ))}
+      </Box>
+    );
+  };
+  
+  const { parentComments, repliesMap } = organizeComments(comments);
 
   return (
     <Box
@@ -53,18 +150,26 @@ const CommentBar = ({ fileId }) => {
         height: "100%",
         overflowY: "auto",
         p: 2,
+        bgcolor: "background.paper",
+        borderLeft: "1px solid #e0e0e0",
       }}
     >
-      {comments.length === 0 && (
-        <Typography variant="body1">No comments yet</Typography>
+      <Typography variant="h6" sx={{ mb: 2 }}>
+        Comments
+      </Typography>
+      
+      {parentComments.length === 0 && (
+        <Typography variant="body2" color="text.secondary">
+          No comments yet. Click on the image to add a comment.
+        </Typography>
       )}
-      {comments.map((comment) => (
-        <CommentCard key={comment._id} comment={comment} />
-      ))}
+      
+      {parentComments.map(comment => 
+        renderCommentThread(comment, repliesMap)
+      )}
     </Box>
   );
 };
-
 const ImageViewer = ({ file }) => {
   const theme = useTheme();
   const { data: comments } = useComments({ fileId: file._id });

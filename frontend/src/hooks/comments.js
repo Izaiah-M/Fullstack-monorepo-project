@@ -13,17 +13,32 @@ export function useCreateComment({ fileId }) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ body, x, y }) =>
-      backendFetch("/comments", {
+    mutationFn: ({ body, x, y, parentId }) => {
+      // Create the request body based on whether it's a reply or a new comment
+      const requestBody = { fileId, body };
+      
+      // Add coordinates for new comments
+      if (x !== undefined && y !== undefined) {
+        requestBody.x = x;
+        requestBody.y = y;
+      }
+      
+      // Add parentId for replies
+      if (parentId) {
+        requestBody.parentId = parentId;
+      }
+      
+      return backendFetch("/comments", {
         method: "POST",
-        body: JSON.stringify({ fileId, body, x, y }),
+        body: JSON.stringify(requestBody),
         headers: { "Content-Type": "application/json" },
-      }),
-    onSuccess: (comment) => {
-      queryClient.setQueryData(["comments", fileId], (data) => [
-        ...data,
-        comment,
-      ]);
+      });
+    },
+    onSuccess: (newComment) => {
+      // Update the comments query cache with the new comment
+      queryClient.setQueryData(["comments", fileId], (existingComments = []) => {
+        return [...existingComments, newComment];
+      });
     },
   });
 }

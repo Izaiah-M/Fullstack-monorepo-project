@@ -21,6 +21,12 @@ async function main() {
 
   const app = express();
 
+  // Add a Middleware to log the request method and URL
+  app.use((req, res, next) => {
+    console.log(`${req.method} ${req.url}`);
+    next();
+  });
+
   app.use(express.json());
   app.use(cors({ origin: process.env.FRONTEND_ORIGIN, credentials: true }));
   app.use(cookieParser(process.env.COOKIE_SECRET));
