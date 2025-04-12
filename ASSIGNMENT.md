@@ -86,7 +86,7 @@ the end user and use your creativity to implement them.
 As a project owner, I would like to reply to comments so that I can have
 a conversation with the reviewer.
 
-### Feature 2: Real-time comment updates
+### Feature 2: Real-time comment updates ✅
 As a project owner, I would like the file view to update in real-time
 when a reviewer leaves a comment.
 
