@@ -82,7 +82,7 @@ one you would like to do**. As you will see the **feature descriptions are
 high-level, open ended and ambiguous on purpose**. We want you to think about
 the end user and use your creativity to implement them.
 
-### Feature 1: Comment replies
+### Feature 1: Comment replies ✅
 As a project owner, I would like to reply to comments so that I can have
 a conversation with the reviewer.
 
@@ -139,3 +139,8 @@ npm run archive
 ```
 to create the zip file. In this way the `.gitignore` rules will apply and the
 zip will only include code and no `node_modules`.
+
+
+
+# Future improvements:
+- Send emails for when a reviewer replies
