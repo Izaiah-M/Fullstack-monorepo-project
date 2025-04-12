@@ -10,10 +10,8 @@ import {
   Button,
   TextField,
   Card,
-  CardHeader,
-  CardContent,
   Typography,
-  CardActions
+  CardActions,
 } from "@mui/material";
 import { useSelectedFile } from "../hooks/files";
 import { useTheme } from "@mui/material/styles";
@@ -23,8 +21,8 @@ import { useUser } from "../hooks/users";
 import UserAvatar from "../components/UserAvatar";
 import Loading from "../pages/Loading";
 
-const CommentCard = ({ comment, isReply = false }) => {
-  const { isLoading, data: author } = useUser(comment.authorId);
+// Renamed from CommentCard to CommentThread, more accurate depiction of what is trying to be achieved.
+const CommentThread = ({ comment, replies = [] }) => {
   const [open, setOpen] = useState(false);
   const createComment = useCreateComment({ fileId: comment.fileId });
 
@@ -34,7 +32,7 @@ const CommentCard = ({ comment, isReply = false }) => {
       {
         fileId: comment.fileId,
         body: e.target.elements.body.value,
-        parentId: comment._id, // Add parentId to create a reply
+        parentId: comment._id,
       },
       { 
         onSuccess: () => setOpen(false) 
@@ -42,33 +40,33 @@ const CommentCard = ({ comment, isReply = false }) => {
     );
   };
 
-  if (isLoading) {
-    return null;
-  }
-
   return (
-    <Card 
-      variant="outlined" 
-      sx={{ 
-        mb: 2,
-        ml: isReply ? 4 : 0,  // Apply indentation for replies
-        borderLeft: isReply ? "4px solid #90caf9" : undefined // Visual indicator for replies with standard MUI blue color
-      }}
-    >
-      <CardHeader
-        avatar={<UserAvatar userId={author._id} />}
-        title={author.email}
-        subheader={new Date(comment.createdAt).toLocaleString()}
-      />
-      <CardContent>
-        <Typography variant="body1">{comment.body}</Typography>
-      </CardContent>
+    <Card variant="outlined" sx={{ mb: 2, p: 2, }}>
+      {/* Original comment */}
+      <CommentContent comment={comment} />
+            
+      {/* Replies section */}
+      {replies.length > 0 && (
+        <Box sx={{ pl: 2, pr: 2, pb: replies.length ? 1 : 0 }}>
+          {replies.map((reply) => (
+            <CommentContent 
+              key={reply._id} 
+              comment={reply} 
+              isReply={true} 
+            />
+          ))}
+        </Box>
+      )}
+      
+      {/* Reply button for the whole thread */}
       <CardActions>
         <Button size="small" onClick={() => setOpen(true)}>Reply</Button>
       </CardActions>
+      
+      {/* Reply dialog */}
       <Dialog open={open} onClose={() => setOpen(false)}>
         <Box component="form" onSubmit={handleSubmit}>
-          <DialogTitle>Reply to Comment</DialogTitle>
+          <DialogTitle>Add a Reply</DialogTitle>
           <DialogContent>
             <TextField
               autoFocus
@@ -100,53 +98,75 @@ const CommentCard = ({ comment, isReply = false }) => {
   );
 };
 
+// Individual comment content component
+const CommentContent = ({ comment, isReply = false }) => {
+  const { isLoading, data: author } = useUser(comment.authorId);
+
+  if (isLoading) {
+    return null;
+  }
+
+  return (
+    <Box sx={{ 
+      py: 1,
+      borderLeft: isReply ? "3px solid #e0e0e0" : "none", 
+      pl: isReply ? 2 : 0,
+      mt: isReply ? 1 : 0,
+      mb: isReply ? 1 : 0,
+    }}>
+      <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+        <UserAvatar userId={author._id} sx={{ width: 32, height: 32, mr: 1 }} />
+        <Box>
+          <Typography variant="subtitle2" component="span">
+            {author.email}
+          </Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+            {new Date(comment.createdAt).toLocaleString()}
+          </Typography>
+        </Box>
+      </Box>
+      <Typography variant="body2" sx={{ ml: isReply ? 0 : 0 }}>
+        {comment.body}
+      </Typography>
+    </Box>
+  );
+};
 const CommentBar = ({ fileId }) => {
   const { data: comments = [] } = useComments({ fileId });
   
   // Organize comments into parent comments and their replies
   const organizeComments = (comments) => {
-    const parentComments = [];
+    // Start with top-level comments (no parentId)
+    const topLevelComments = comments.filter(comment => !comment.parentId);
+    
+    // Group all replies by their parent comment ID
     const repliesMap = {};
     
-    // First, separate parents and replies
     comments.forEach(comment => {
       if (comment.parentId) {
         if (!repliesMap[comment.parentId]) {
           repliesMap[comment.parentId] = [];
         }
         repliesMap[comment.parentId].push(comment);
-      } else {
-        parentComments.push(comment);
       }
     });
     
-    return { parentComments, repliesMap };
-  };
-  
-  const renderCommentThread = (comment, repliesMap) => {
-    const replies = repliesMap[comment._id] || [];
+    // Sort replies by creation date for each parent
+    Object.keys(repliesMap).forEach(parentId => {
+      repliesMap[parentId].sort((a, b) => 
+        new Date(a.createdAt) - new Date(b.createdAt)
+      );
+    });
     
-    return (
-      <Box key={comment._id} sx={{ mb: 3 }}>
-        <CommentCard comment={comment} />
-        
-        {replies.map(reply => (
-          <CommentCard 
-            key={reply._id} 
-            comment={reply} 
-            isReply={true} 
-          />
-        ))}
-      </Box>
-    );
+    return { topLevelComments, repliesMap };
   };
   
-  const { parentComments, repliesMap } = organizeComments(comments);
+  const { topLevelComments, repliesMap } = organizeComments(comments);
 
   return (
     <Box
       sx={{
-        width: 320,
+        width: 400,
         height: "100%",
         overflowY: "auto",
         p: 2,
@@ -158,18 +178,24 @@ const CommentBar = ({ fileId }) => {
         Comments
       </Typography>
       
-      {parentComments.length === 0 && (
+      {topLevelComments.length === 0 && (
         <Typography variant="body2" color="text.secondary">
           No comments yet. Click on the image to add a comment.
         </Typography>
       )}
       
-      {parentComments.map(comment => 
-        renderCommentThread(comment, repliesMap)
-      )}
+      {topLevelComments.map(comment => (
+        <CommentThread 
+          key={comment._id} 
+          comment={comment} 
+          replies={repliesMap[comment._id] || []} 
+        />
+      ))}
     </Box>
   );
 };
+
+
 const ImageViewer = ({ file }) => {
   const theme = useTheme();
   const { data: comments } = useComments({ fileId: file._id });
