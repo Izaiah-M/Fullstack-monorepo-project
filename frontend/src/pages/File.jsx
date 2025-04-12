@@ -20,6 +20,7 @@ import { useSearchParams } from "react-router-dom";
 import { useUser } from "../hooks/users";
 import UserAvatar from "../components/UserAvatar";
 import Loading from "../pages/Loading";
+import { useLiveComments } from "../hooks/useLiveComments";
 
 // Renamed from CommentCard to CommentThread, more accurate depiction of what is trying to be achieved.
 const CommentThread = ({ comment, replies = [] }) => {
@@ -341,6 +342,7 @@ const ImageViewer = ({ file }) => {
 
 const File = () => {
   const { data: file, isLoading, isError } = useSelectedFile();
+  useLiveComments(file?._id);
   const theme = useTheme();
 
   if (isLoading) {

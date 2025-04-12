@@ -1,5 +1,6 @@
 import { MongoClient } from "mongodb";
 import express from "express";
+import http from "http";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import Session from "./src/utils/session.js";
@@ -9,6 +10,7 @@ import ProjectRoutes from "./src/modules/projects/project.routes.js";
 import FileRoutes from "./src/modules/files/file.routes.js";
 import CommentRoutes from "./src/modules/comments/comment.routes.js";
 import { errorHandler } from "./src/utils/errors.js";
+import { Server } from "socket.io";
 
 async function main() {
   const client = new MongoClient(process.env.MONGO_URI);
@@ -16,12 +18,30 @@ async function main() {
   console.log("Connected to database");
 
   const db = client.db("filestage");
-
   const session = await Session({ db });
 
   const app = express();
+  const server = http.createServer(app);
 
-  // Add a Middleware to log the request method and URL
+  const io = new Server(server, {
+    cors: {
+      origin: process.env.FRONTEND_ORIGIN,
+      methods: ["GET", "POST"],
+      credentials: true,
+    },
+  });
+
+  io.on("connection", (socket) => {
+    console.log("a user connected:", socket.id);
+
+    socket.on("disconnect", () => {
+      console.log("user disconnected:", socket.id);
+    });
+  });
+
+  // Attach io to app so you can access it in routes
+  app.set("io", io);
+
   app.use((req, res, next) => {
     console.log(`${req.method} ${req.url}`);
     next();
@@ -39,9 +59,11 @@ async function main() {
 
   app.use(errorHandler);
 
-  app.listen(process.env.PORT, () =>
-    console.log(`Server running on port: ${process.env.PORT}`),
-  );
+  // ✅ Only use server.listen (with Socket.IO attached)
+  const PORT = process.env.PORT || 3000;
+  server.listen(PORT, () => {
+    console.log(`Server listening on http://localhost:${PORT}`);
+  });
 
   process.on("SIGINT", async () => {
     await client.close();

@@ -42,12 +42,23 @@ export async function createComment(db, session, req, body) {
       _id: new ObjectId(parentId) 
     });
     
-    if (!parentComment) {
-      throw new Error("Parent comment not found");
-    }
+    if (!parentComment) throw new Error("Parent comment not found");
   }
 
   const { insertedId } = await db.collection("comments").insertOne(comment);
 
-  return db.collection("comments").findOne({ _id: insertedId });
+  const newComment = await db.collection("comments").findOne({ _id: insertedId });
+
+  // Get the sender's socket ID from header
+  const senderSocketId = req.headers["x-socket-id"] || null;
+  
+  console.log(`Broadcasting new comment. Sender socket ID: ${senderSocketId}`);
+
+  // Emit to all connected clients with sender information
+  req.app.get('io').emit(`comments:${fileId}`, { 
+    comment: newComment, 
+    senderSocketId 
+  });
+
+  return newComment;
 }
