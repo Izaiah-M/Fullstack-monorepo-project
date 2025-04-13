@@ -102,7 +102,7 @@ address the reviewer's comments.
 As a project owner, I would like to search for projects, files and comments
 from one central place so I can navigate to them quickly.
 
-### Feature 6: Lazy loading comments
+### Feature 6: Lazy loading comments ✅
 When a file has a lot of comments it is slow to load all of them at once.
 Implement infinite scrolling for comments.
 
