@@ -3,9 +3,10 @@ import { StringObjectId } from "../../utils/schemas.js";
 
 export const GetCommentsQuerySchema = z.object({
   fileId: StringObjectId,
+  page: z.coerce.number().int().min(1).optional().default(1),
+  limit: z.coerce.number().int().min(1).max(50).optional().default(10)
 });
 
-// TODO: update this schema to support both new comments and replies
 export const CreateCommentBodySchema = z.object({
   fileId: StringObjectId,
   body: z.string(),
