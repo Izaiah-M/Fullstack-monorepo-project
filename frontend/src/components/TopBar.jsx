@@ -15,6 +15,7 @@ import { useTheme } from "@mui/material/styles";
 import { useSession } from "../hooks/auth";
 import { useUser } from "../hooks/users";
 import UserAvatar from "./UserAvatar";
+import GlobalSearch from "./GlobalSearch";
 
 const TopBar = ({ title, back = false }) => {
   const theme = useTheme();
@@ -46,6 +47,7 @@ const TopBar = ({ title, back = false }) => {
             maxWidth: "100%",
           }}
         >
+        
           {back ? (
             <IconButton
               edge="start"
@@ -58,6 +60,13 @@ const TopBar = ({ title, back = false }) => {
           ) : (
             <img src="/filestage.png" alt="Filestage" style={{ width: 100 }} />
           )}
+
+        {/* Add the global search component */}
+        <Box sx={{ flexGrow: 1, display: "flex", justifyContent: "center" }}>
+          <GlobalSearch />
+        </Box>
+        
+
           {title && (
             <Typography
               variant="h6"
@@ -80,6 +89,7 @@ const TopBar = ({ title, back = false }) => {
             <UserAvatar userId={userId} />
           </IconButton>
         </Box>
+         
         <Menu
           anchorEl={anchorEl}
           open={open}
