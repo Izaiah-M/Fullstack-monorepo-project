@@ -12,7 +12,7 @@ export const CommentHighlightProvider = ({ children }) => {
     // Auto-clear highlight after 2 seconds
     setTimeout(() => {
       setHighlightedCommentId(null);
-    }, 2000);
+    }, 4000);
   };
   
   return (
