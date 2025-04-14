@@ -22,11 +22,26 @@ import { useUser } from "../hooks/users";
 import UserAvatar from "../components/UserAvatar";
 import Loading from "../pages/Loading";
 import { useLiveComments } from "../hooks/useLiveComments";
+import { CommentHighlightProvider, useCommentHighlight } from "../hooks/commentContext";
 
 // Renamed from CommentCard to CommentThread, more accurate depiction of what is trying to be achieved.
 const CommentThread = ({ comment, replies = [] }) => {
   const [open, setOpen] = useState(false);
   const createComment = useCreateComment({ fileId: comment.fileId });
+  const { highlightedCommentId } = useCommentHighlight();
+  
+  // Reference to this comment card
+  const commentRef = useRef(null);
+
+   // Scroll into view when highlighted
+   useEffect(() => {
+    if (highlightedCommentId === comment._id && commentRef.current) {
+      commentRef.current.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'center'
+      });
+    }
+  }, [highlightedCommentId, comment._id]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -43,8 +58,17 @@ const CommentThread = ({ comment, replies = [] }) => {
   };
 
   return (
-    <Card variant="outlined" sx={{ mb: 2, p: 2, }}>
-      {/* Original comment */}
+    <Card 
+      ref={commentRef}
+      variant="outlined" 
+      sx={{ 
+        mb: 2, 
+        p: 2,
+        transition: 'background-color 0.3s ease',
+        bgcolor: highlightedCommentId === comment._id ? 'rgba(0, 0, 0, 0.08)' : 'background.paper',
+      }}
+    >
+      {/* Parent comment */}
       <CommentContent comment={comment} />
             
       {/* Replies section */}
@@ -295,9 +319,11 @@ const ImageViewer = ({ file }) => {
   const [open, setOpen] = useState(false);
   const [clickCoords, setClickCoords] = useState({ x: 0, y: 0 });
   const [, setSearchParams] = useSearchParams();
+  const { highlightComment } = useCommentHighlight();
 
   const selectComment = (commentId) => {
     setSearchParams({ commentId }, { replace: true });
+    highlightComment(commentId);
   };
 
   const handleImageClick = (e) => {
@@ -449,25 +475,27 @@ const File = () => {
   }
 
   return (
-    <Box
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100vh",
-      }}
-    >
-      <TopBar title={file.name} back={`/projects/${file.projectId}`} />
+    <CommentHighlightProvider>
       <Box
         sx={{
-          height: "100%",
           display: "flex",
-          backgroundColor: theme.palette.grey[200],
+          flexDirection: "column",
+          height: "100vh",
         }}
       >
-        <ImageViewer file={file} />
-        <CommentBar fileId={file._id} />
+        <TopBar title={file.name} back={`/projects/${file.projectId}`} />
+        <Box
+          sx={{
+            height: "100%",
+            display: "flex",
+            backgroundColor: theme.palette.grey[200],
+          }}
+        >
+          <ImageViewer file={file} />
+          <CommentBar fileId={file._id} />
+        </Box>
       </Box>
-    </Box>
+    </CommentHighlightProvider>
   );
 };
 
