@@ -1,5 +1,3 @@
-import { ZodError } from "zod";
-
 export class ValidationError extends Error {
   constructor(message) {
     super(message);
@@ -29,26 +27,5 @@ export class NotFoundError extends Error {
     super(message);
     this.name = "Not Found Error";
     this.status = 404;
-  }
-}
-
-// eslint-disable-next-line no-unused-vars
-export function errorHandler(err, req, res, next) {
-  console.error(err);
-
-  if (err.status) {
-    res.status(err.status).json({
-      name: err.name,
-      message: err.message,
-    });
-  } else if (err instanceof ZodError) {
-    res.status(400).json({
-      name: "Validation Error",
-      message: `${err.issues[0].message} '${err.issues[0].path.join(".")}'`,
-    });
-  } else {
-    res.status(500).json({
-      name: "Internal Server Error",
-    });
   }
 }

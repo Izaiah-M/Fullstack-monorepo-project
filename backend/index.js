@@ -4,15 +4,15 @@ import http from "http";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import Session from "./src/utils/session.js";
-import Redis from "./src/utils/redis.js";
+import Redis from "./src/config/redis.js";
 import AuthRoutes from "./src/modules/auth/auth.routes.js";
 import UserRoutes from "./src/modules/user/user.routes.js";
 import ProjectRoutes from "./src/modules/projects/project.routes.js";
 import FileRoutes from "./src/modules/files/file.routes.js";
 import CommentRoutes from "./src/modules/comments/comment.routes.js";
 import SearchRoutes from "./src/modules/search/search.routes.js";
-import { errorHandler } from "./src/utils/errors.js";
 import { Server } from "socket.io";
+import { errorMiddleware } from "./src/middleware/error.middleware.js";
 
 async function main() {
   const client = new MongoClient(process.env.MONGO_URI);
@@ -78,7 +78,7 @@ async function main() {
   app.use("/comments", CommentRoutes({ db, session }));
   app.use("/search", SearchRoutes({ db, session, redis }));
 
-  app.use(errorHandler);
+  app.use(errorMiddleware);
 
   const PORT = process.env.PORT || 3001;
   server.listen(PORT, () => {
