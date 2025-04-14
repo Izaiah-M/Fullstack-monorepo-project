@@ -187,7 +187,6 @@ const GlobalSearch = () => {
                       {results.comments.map(comment => (
                         <ListItemButton 
                           key={comment._id} 
-                        //   button
                           onClick={() => handleItemClick("comment", comment)}
                         >
                           <ListItemIcon sx={{ minWidth: 36 }}>
