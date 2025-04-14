@@ -1,17 +1,14 @@
 import { SearchQuerySchema } from "./search.schema.js";
 import { search } from "./search.service.js";
 
-export function SearchController({ db, session }) {
+export function SearchController({ db, session, redis }) {
   return {
     search: async (req, res) => {
       try {
-        console.log("Raw query:", req.query); // Add logging
         const query = SearchQuerySchema.parse(req.query);
-        console.log("Parsed query:", query); // Add logging
-        const results = await search(db, session, req, query);
+        const results = await search(db, session, redis, req, query);
         res.json(results);
       } catch (error) {
-        console.error("Search error:", error); // Add logging
         throw error;
       }
     }

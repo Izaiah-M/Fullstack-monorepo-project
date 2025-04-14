@@ -21,6 +21,7 @@ services:
     build: backend
     depends_on:
       - database
+      - redis
     tty: true
     develop:
       watch:
@@ -37,6 +38,7 @@ services:
       FRONTEND_ORIGIN: "http://localhost:3000"
       COOKIE_SECRET: "s3cr3t"
       MONGO_URI: "mongodb://root:1234@database:27017"
+      REDIS_URI: "redis://redis:6379"
 
   database:
     image: mongo:5.0
@@ -45,3 +47,9 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: "root"
       MONGO_INITDB_ROOT_PASSWORD: "1234"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --save 60 1 --loglevel warning
