@@ -35,7 +35,7 @@ export const logger = createLogger({
     }),
     new transports.File({ 
       filename: path.join(logDir, "combined.log"), 
-      level: "warn"
+      level: "info"
     })
   ]
 });

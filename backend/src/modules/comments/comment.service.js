@@ -1,5 +1,7 @@
-import { UnauthorizedError } from "../../utils/errors.js";
+// src/modules/comments/comment.controller.js
+import { NotFoundError, UnauthorizedError } from "../../utils/errors.js";
 import Comment from "../../models/Comment.js";
+import { logger } from "../../utils/logger.js";
 
 export async function getComments(session, req, query) {
   const { userId } = await session.get(req);
@@ -7,27 +9,23 @@ export async function getComments(session, req, query) {
 
   const { fileId, page = 1, limit = 10 } = query;
   
-  // Convert to numbers in case they came as strings
   const pageNum = parseInt(page, 10);
   const limitNum = parseInt(limit, 10);
   
-  // Calculate skip value for pagination
   const skip = (pageNum - 1) * limitNum;
 
-  // Get total count for pagination info
   const total = await Comment.countDocuments({ fileId });
   
-  // Get paginated comments using Mongoose
   const comments = await Comment.find({ fileId })
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limitNum);
     
-  // Calculate total pages and whether there are more comments
   const totalPages = Math.ceil(total / limitNum);
   const hasMore = pageNum < totalPages;
   
-  // Return comments with pagination metadata  
+  logger.debug("Comments retrieved", { fileId, page: pageNum, total });
+  
   return {
     comments,
     pagination: {
@@ -46,7 +44,6 @@ export async function createComment(session, req, body) {
 
   const { fileId, body: commentBody, x, y, parentId } = body;
 
-  // Create the comment object
   const commentData = {
     fileId,
     authorId: userId,
@@ -60,29 +57,32 @@ export async function createComment(session, req, body) {
     commentData.y = y;
   }
 
-  // Add parentId for replies
+  // Check parent comment if specified
   if (parentId) {
     commentData.parentId = parentId;
     
-    // Validate that parent comment exists
     const parentComment = await Comment.findById(parentId);
-    
-    if (!parentComment) throw new Error("Parent comment not found");
+    if (!parentComment) throw new NotFoundError("Parent comment not found");
   }
 
-  // Create and save the new comment using Mongoose
+  // Create and save the comment
   const comment = new Comment(commentData);
   await comment.save();
 
-  // Get the sender's socket ID from header
+  // Get sender socket ID from headers
   const senderSocketId = req.headers["x-socket-id"] || null;
   
-  console.log(`Broadcasting new comment. Sender socket ID: ${senderSocketId}`);
-
   // Emit to all connected clients with sender information
   req.app.get('io').emit(`comments:${fileId}`, { 
     comment, 
     senderSocketId 
+  });
+  
+  logger.info("Comment created", { 
+    commentId: comment._id, 
+    fileId, 
+    userId, 
+    isReply: !!parentId 
   });
 
   return comment;

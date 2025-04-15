@@ -21,7 +21,7 @@ export async function search(session, redis, req, query) {
   let results = { projects: [], files: [], comments: [] };
   const searches = [];
   
-  // Project search using Mongoose
+  // Project search 
   searches.push(
     Project.find({ 
       $or: [
@@ -38,7 +38,7 @@ export async function search(session, redis, req, query) {
     .then(data => results.projects = data)
   );
   
-  // File search using Mongoose aggregate
+  // File search using  aggregate
   searches.push(
     File.aggregate([
       {
@@ -86,7 +86,7 @@ export async function search(session, redis, req, query) {
     .then(data => results.files = data)
   );
   
-  // Comment search using Mongoose aggregate
+  // Comment search using aggregate
   searches.push(
     Comment.aggregate([
       {
