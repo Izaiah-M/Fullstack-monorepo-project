@@ -1,13 +1,14 @@
 import path from "path";
 import fs from "fs";
 import multer from "multer";
-import { ObjectId } from "mongodb";
 import {
   UnauthorizedError,
   NotFoundError,
   ValidationError,
   ForbiddenError,
 } from "../../utils/errors.js";
+import File from "../../models/File.js";
+import Project from "../../models/Project.js";
 
 const uploadDir = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(uploadDir)) {
@@ -16,7 +17,7 @@ if (!fs.existsSync(uploadDir)) {
 
 export const upload = multer({ dest: "uploads/" });
 
-export async function uploadFile({ db, session, req }) {
+export async function uploadFile({ session, req }) {
   const { userId } = await session.get(req);
   if (!userId) throw new UnauthorizedError();
 
@@ -24,14 +25,12 @@ export async function uploadFile({ db, session, req }) {
     throw new ValidationError("Invalid file type");
   }
 
-  const project = await db
-    .collection("projects")
-    .findOne({ _id: new ObjectId(req.body.projectId) });
+  const project = await Project.findById(req.body.projectId);
 
   if (!project) throw new NotFoundError("Project not found");
   if (!project.authorId.equals(userId)) throw new ForbiddenError();
 
-  const { insertedId } = await db.collection("files").insertOne({
+  const file = new File({
     projectId: project._id,
     authorId: userId,
     name: req.file.originalname,
@@ -39,16 +38,15 @@ export async function uploadFile({ db, session, req }) {
     createdAt: new Date(),
   });
 
-  return db.collection("files").findOne({ _id: insertedId });
+  await file.save();
+  return file;
 }
 
-export async function getFiles({ db, session, req }) {
+export async function getFiles({ session, req }) {
   const { userId } = await session.get(req);
   if (!userId) throw new UnauthorizedError();
 
-  const project = await db
-    .collection("projects")
-    .findOne({ _id: new ObjectId(req.query.projectId) });
+  const project = await Project.findById(req.query.projectId);
 
   if (!project) throw new NotFoundError("Project not found");
 
@@ -59,25 +57,18 @@ export async function getFiles({ db, session, req }) {
     throw new ForbiddenError();
   }
 
-  return db
-    .collection("files")
-    .find({ projectId: project._id }, { sort: { createdAt: 1 } })
-    .toArray();
+  return File.find({ projectId: project._id }).sort({ createdAt: 1 });
 }
 
-export async function getFileById({ db, session, req }) {
+export async function getFileById({ session, req }) {
   const { userId } = await session.get(req);
   if (!userId) throw new UnauthorizedError();
 
-  const file = await db
-    .collection("files")
-    .findOne({ _id: new ObjectId(req.params.id) });
+  const file = await File.findById(req.params.id);
 
   if (!file) throw new NotFoundError("File not found");
 
-  const project = await db
-    .collection("projects")
-    .findOne({ _id: file.projectId });
+  const project = await Project.findById(file.projectId);
 
   if (
     !file.authorId.equals(userId) &&
@@ -89,7 +80,7 @@ export async function getFileById({ db, session, req }) {
   return file;
 }
 
-export async function getFileContent({ db, session, req }) {
-  const file = await getFileById({ db, session, req });
+export async function getFileContent({ session, req }) {
+  const file = await getFileById({ session, req });
   return path.join(process.cwd(), file.path);
 }

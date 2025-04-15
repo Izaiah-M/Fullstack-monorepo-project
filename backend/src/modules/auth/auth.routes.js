@@ -1,9 +1,9 @@
 import { Router } from 'express';
 import { AuthController } from './auth.controller.js';
 
-export default function AuthRoutes({ db, session }) {
+export default function AuthRoutes({ session }) {
   const router = Router();
-  const controller = AuthController({ db, session });
+  const controller = AuthController({ session });
 
   router.post('/signup', controller.signup);
   router.post('/login', controller.login);

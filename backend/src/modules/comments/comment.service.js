@@ -1,7 +1,7 @@
 import { UnauthorizedError } from "../../utils/errors.js";
-import { ObjectId } from "mongodb";
+import Comment from "../../models/Comment.js";
 
-export async function getComments(db, session, req, query) {
+export async function getComments(session, req, query) {
   const { userId } = await session.get(req);
   if (!userId) throw new UnauthorizedError();
 
@@ -15,28 +15,17 @@ export async function getComments(db, session, req, query) {
   const skip = (pageNum - 1) * limitNum;
 
   // Get total count for pagination info
-  const total = await db.collection("comments").countDocuments({ fileId });
+  const total = await Comment.countDocuments({ fileId });
   
-  // Get paginated comments
-  const comments = await db
-    .collection("comments")
-    .find({ fileId })
-     .sort({ 
-      // First sort by whether it's a parent comment (no parentId)
-      // parentId: 1, 
-      // Then by creation date (newest first)
-      createdAt: -1 
-      // This is to help solve the issue of replies appearing before their parent
-    })// to help with returnng comments newest first
+  // Get paginated comments using Mongoose
+  const comments = await Comment.find({ fileId })
+    .sort({ createdAt: -1 })
     .skip(skip)
-    .limit(limitNum)
-    .toArray();
+    .limit(limitNum);
     
   // Calculate total pages and whether there are more comments
   const totalPages = Math.ceil(total / limitNum);
   const hasMore = pageNum < totalPages;
-
-  // console.log("Comments: ", comments)
   
   // Return comments with pagination metadata  
   return {
@@ -51,14 +40,14 @@ export async function getComments(db, session, req, query) {
   };
 }
 
-export async function createComment(db, session, req, body) {
+export async function createComment(session, req, body) {
   const { userId } = await session.get(req);
   if (!userId) throw new UnauthorizedError();
 
   const { fileId, body: commentBody, x, y, parentId } = body;
 
   // Create the comment object
-  const comment = {
+  const commentData = {
     fileId,
     authorId: userId,
     body: commentBody,
@@ -67,25 +56,23 @@ export async function createComment(db, session, req, body) {
 
   // Add coordinates only for top-level comments
   if (x !== undefined && y !== undefined) {
-    comment.x = x;
-    comment.y = y;
+    commentData.x = x;
+    commentData.y = y;
   }
 
   // Add parentId for replies
   if (parentId) {
-    comment.parentId = parentId;
+    commentData.parentId = parentId;
     
     // Validate that parent comment exists
-    const parentComment = await db.collection("comments").findOne({ 
-      _id: new ObjectId(parentId) 
-    });
+    const parentComment = await Comment.findById(parentId);
     
     if (!parentComment) throw new Error("Parent comment not found");
   }
 
-  const { insertedId } = await db.collection("comments").insertOne(comment);
-
-  const newComment = await db.collection("comments").findOne({ _id: insertedId });
+  // Create and save the new comment using Mongoose
+  const comment = new Comment(commentData);
+  await comment.save();
 
   // Get the sender's socket ID from header
   const senderSocketId = req.headers["x-socket-id"] || null;
@@ -94,9 +81,9 @@ export async function createComment(db, session, req, body) {
 
   // Emit to all connected clients with sender information
   req.app.get('io').emit(`comments:${fileId}`, { 
-    comment: newComment, 
+    comment, 
     senderSocketId 
   });
 
-  return newComment;
+  return comment;
 }

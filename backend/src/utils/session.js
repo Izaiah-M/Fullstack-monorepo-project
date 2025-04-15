@@ -1,24 +1,20 @@
-import { ObjectId } from "mongodb";
 import { ValidationError } from "./errors.js";
+import Session from "../models/Session.js";
 
 const SESSION_COOKIE_NAME = "session_id";
 const SESSION_DURATION_MS = 14 * 24 * 60 * 60 * 1000; // 14 days
 
-export default async function Session({ db }) {
-  await db
-    .collection("sessions")
-    .createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+export default async function SessionService() {
 
   async function create(res, { userId }) {
-    const session = {
+    const session = new Session({
       userId,
       expiresAt: new Date(Date.now() + SESSION_DURATION_MS),
-    };
+    });
 
-    const { insertedId: sessionId } = await db
-      .collection("sessions")
-      .insertOne(session);
-    res.cookie(SESSION_COOKIE_NAME, sessionId, {
+    await session.save();
+    
+    res.cookie(SESSION_COOKIE_NAME, session._id, {
       expires: session.expiresAt,
       domain: process.env.DOMAIN,
       httpOnly: true,
@@ -29,7 +25,8 @@ export default async function Session({ db }) {
 
   async function remove(req, res) {
     const session = await get(req);
-    await db.collection("sessions").deleteOne({ _id: session._id });
+    await Session.deleteOne({ _id: session._id });
+    
     res.clearCookie(SESSION_COOKIE_NAME, {
       domain: process.env.DOMAIN,
       path: "/",
@@ -43,9 +40,13 @@ export default async function Session({ db }) {
     if (!sessionId) {
       throw new ValidationError("No session found");
     }
-    return await db
-      .collection("sessions")
-      .findOne({ _id: new ObjectId(sessionId) });
+    
+    const session = await Session.findById(sessionId);
+    if (!session) {
+      throw new ValidationError("No session found");
+    }
+    
+    return session;
   }
 
   return {

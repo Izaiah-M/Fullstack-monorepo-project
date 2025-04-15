@@ -7,17 +7,17 @@ import {
   logoutService,
 } from './auth.service.js';
 
-export function AuthController({ db, session }) {
+export function AuthController({ session }) {
   return {
     signup: async (req, res) => {
       const credentials = CredentialsSchema.parse(req.body);
-      const result = await signupService(db, session, res, credentials);
+      const result = await signupService(session, res, credentials);
       res.status(201).json(result);
     },
 
     login: async (req, res) => {
       const credentials = CredentialsSchema.parse(req.body);
-      const result = await loginService(db, session, res, credentials);
+      const result = await loginService(session, res, credentials);
       res.json(result);
     },
 
@@ -27,7 +27,7 @@ export function AuthController({ db, session }) {
     },
 
     removeAccount: async (req, res) => {
-      await removeAccountService(db, session, req, res);
+      await removeAccountService(session, req, res);
       res.status(200).end();
     },
 
