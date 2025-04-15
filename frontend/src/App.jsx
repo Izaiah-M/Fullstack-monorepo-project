@@ -13,8 +13,8 @@ import File from "./pages/File";
 import CssBaseline from "@mui/material/CssBaseline";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { useSession } from "./hooks/auth";
-import { retryConfig } from "./backend";
 import Loading from "./pages/Loading";
+import { retryConfig } from "./api/backend";
 
 const theme = createTheme({
   components: {
