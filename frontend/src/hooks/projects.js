@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
-import { backendFetch } from "../backend";
+import { backendFetch } from "../api/backend";
 
 export function useProjects({ select } = {}) {
   return useQuery({

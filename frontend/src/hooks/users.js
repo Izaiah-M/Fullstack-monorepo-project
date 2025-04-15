@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { backendFetch } from "../backend";
+import { backendFetch } from "../api/backend";
 
 export function useUser(userId) {
   return useQuery({

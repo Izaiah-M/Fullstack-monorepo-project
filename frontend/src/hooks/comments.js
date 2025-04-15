@@ -1,8 +1,8 @@
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
-import { backendFetch } from "../backend";
+import { backendFetch } from "../api/backend";
 import { useEffect } from 'react';
 import io from 'socket.io-client';
-import { setSocketId, getSocketId } from '../backend';
+import { setSocketId, getSocketId } from '../api/backend';
 
 // Simple paginated query - returns only the page requested
 export function useComments({ fileId, page = 1, limit = 15 }) {
