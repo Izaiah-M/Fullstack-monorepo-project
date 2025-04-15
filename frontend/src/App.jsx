@@ -7,6 +7,7 @@ import {
   useLocation,
 } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ErrorBoundary } from "react-error-boundary";
 import Auth from "./pages/Auth";
 import Projects from "./pages/Projects";
 import File from "./pages/File";
@@ -15,6 +16,7 @@ import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { useSession } from "./hooks/auth";
 import Loading from "./pages/Loading";
 import { retryConfig } from "./api/backend";
+import ErrorFallback from "./components/common/ErrorFallback";
 
 const theme = createTheme({
   components: {
@@ -56,25 +58,39 @@ const ProtectedRoute = () => {
   return <Outlet />;
 };
 
+// Log error function for monitoring/debugging
+const logError = (error, info) => {
+  // In a production app, we could send this to an error tracking service like sentury
+  console.error("Caught an error:", error, info);
+};
+
 const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <CssBaseline />
       <ThemeProvider theme={theme}>
-        <Router>
-          <Routes>
-            <Route path="/login" element={<Auth action="login" />} />
-            <Route path="/signup" element={<Auth action="signup" />} />
+        <ErrorBoundary 
+          FallbackComponent={ErrorFallback} 
+          onError={logError}
+          onReset={() => {
+            console.log("Error boundary was reset");
+          }}
+        >
+          <Router>
+            <Routes>
+              <Route path="/login" element={<Auth action="login" />} />
+              <Route path="/signup" element={<Auth action="signup" />} />
 
-            <Route element={<ProtectedRoute />}>
-              <Route path="/projects" element={<Projects />} />
-              <Route path="/projects/:projectId" element={<Projects />} />
-              <Route path="/files/:fileId" element={<File />} />
-            </Route>
+              <Route element={<ProtectedRoute />}>
+                <Route path="/projects" element={<Projects />} />
+                <Route path="/projects/:projectId" element={<Projects />} />
+                <Route path="/files/:fileId" element={<File />} />
+              </Route>
 
-            <Route path="*" element={<Navigate to="/projects" />} />
-          </Routes>
-        </Router>
+              <Route path="*" element={<Navigate to="/projects" />} />
+            </Routes>
+          </Router>
+        </ErrorBoundary>
       </ThemeProvider>
     </QueryClientProvider>
   );
