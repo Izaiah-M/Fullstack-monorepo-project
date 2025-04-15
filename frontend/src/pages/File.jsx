@@ -6,7 +6,7 @@ import ImageViewer from "../components/file/ImageViewer";
 import TopBar from "../components/common/TopBar";
 import { CommentHighlightProvider } from "../context/commentContext";
 import { useSelectedFile } from "../hooks/files";
-import { useLiveComments } from "../hooks/useLiveComments";
+import { useLiveComments } from "../hooks/comments";
 import Loading from "../pages/Loading";
 
 const File = () => {
