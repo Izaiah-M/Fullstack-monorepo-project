@@ -3,10 +3,17 @@ import fs from "fs";
 import path from "path";
 import process from "process";
 
-// Create logs directory if it doesn't exist
-const logDir = path.join(process.cwd(), "logs");
-if (!fs.existsSync(logDir)) {
-  fs.mkdirSync(logDir, { recursive: true });
+const cwd = process.cwd();
+const logDir = path.join(cwd, "logs");
+
+try {
+  if (!fs.existsSync(logDir)) {
+    fs.mkdirSync(logDir, { recursive: true });
+  } else {
+    console.log("Log directory already exists");
+  }
+} catch (error) {
+  console.error(`Error creating log directory: ${error.message}`);
 }
 
 export const logger = createLogger({
@@ -27,7 +34,10 @@ export const logger = createLogger({
       level: "error" 
     }),
     new transports.File({ 
-      filename: path.join(logDir, "combined.log") 
+      filename: path.join(logDir, "combined.log"), 
+      level: "warn"
     })
   ]
 });
+
+// NOTE: I Changed it from logging the files to the docker container, to logging on host machine for easier debugging

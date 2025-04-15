@@ -32,6 +32,8 @@ services:
           path: ./backend/package.json
     ports:
       - "3001:3001"
+    volumes:
+      - ./backend/logs:/backend/logs 
     environment:
       DOMAIN: "localhost"
       PORT: 3001
