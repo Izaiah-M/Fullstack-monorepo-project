@@ -2,50 +2,73 @@ import { Box, Typography, Button, Alert, AlertTitle } from "@mui/material";
 import { Link } from "react-router-dom";
 
 /**
- * Reusable error component with action button
+ * Reusable error component with flexible styling and actions
+ * 
+ * @param {Object} props - Component props
+ * @param {string} props.message - Main error message
+ * @param {Object} props.error - Error object containing detailed information
+ * @param {string} props.actionText - Text for the action button
+ * @param {string} props.actionLink - URL to navigate to when action button is clicked
+ * @param {Function} props.actionHandler - Function to call when action button is clicked
+ * @param {string} props.severity - Alert severity (error, warning, info, success)
+ * @param {string} props.variant - Alert variant (standard, outlined, filled)
  */
 const ErrorAlert = ({ 
   message = "An error occurred", 
-  error, 
+  error,
   actionText, 
   actionLink,
+  actionHandler,
+  severity = "error",
+  variant = "standard",
   ...props 
 }) => {
+  // Handle the action - either navigate to a link or call a handler function
+  const handleAction = () => {
+    if (actionHandler && typeof actionHandler === 'function') {
+      actionHandler();
+    }
+  };
+
+  // Determine if we should use a Link or a regular Button
+  const ButtonComponent = actionLink ? Link : Button;
+  const buttonProps = actionLink ? { to: actionLink } : { onClick: handleAction };
+  
   return (
     <Box 
       sx={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center',
-        height: '100%',
-        p: 3 
+        width: '100%',
+        maxWidth: variant === 'standard' ? 600 : 'auto',
       }}
       {...props}
     >
       <Alert 
-        severity="error" 
+        severity={severity} 
+        variant={variant}
         sx={{ 
-          maxWidth: 600,
           width: '100%'
         }}
       >
         <AlertTitle>{message}</AlertTitle>
         {error && (
-          <Typography sx={{ mb: 2 }}>
+          <Typography 
+            variant="body2" 
+            sx={{ mb: actionText ? 2 : 0 }}
+            data-testid="error-details"
+          >
             {error.message || 'Unknown error occurred'}
           </Typography>
         )}
-        {actionText && actionLink && (
-          <Button 
-            component={Link} 
-            to={actionLink} 
+        {actionText && (
+          <ButtonComponent 
+            {...buttonProps}
             variant="outlined" 
-            color="error" 
+            color={severity}
             size="small"
-            data-testid="error-action"
+            data-testid="error-action-button"
           >
             {actionText}
-          </Button>
+          </ButtonComponent>
         )}
       </Alert>
     </Box>
