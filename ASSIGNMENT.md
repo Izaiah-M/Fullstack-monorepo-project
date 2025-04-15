@@ -98,7 +98,7 @@ reviewers are aware of the time frame.
 As a collaborator, I would like to upload a new version of a file so that I can
 address the reviewer's comments.
 
-### Feature 5: Global search
+### Feature 5: Global search ✅
 As a project owner, I would like to search for projects, files and comments
 from one central place so I can navigate to them quickly.
 
@@ -139,8 +139,3 @@ npm run archive
 ```
 to create the zip file. In this way the `.gitignore` rules will apply and the
 zip will only include code and no `node_modules`.
-
-
-
-# Future improvements:
-- Send emails for when a reviewer replies
