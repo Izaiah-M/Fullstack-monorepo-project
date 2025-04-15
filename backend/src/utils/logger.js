@@ -1,4 +1,5 @@
 import { createLogger, transports, format } from "winston";
+import 'winston-daily-rotate-file';
 import fs from "fs";
 import path from "path";
 import process from "process";
@@ -16,12 +17,33 @@ try {
   console.error(`Error creating log directory: ${error.message}`);
 }
 
-export const logger = createLogger({
+const errorRotateTransport = new transports.DailyRotateFile({
+  filename: path.join(logDir, 'error-%DATE%.log'),
+  datePattern: 'YYYY-MM-DD',
+  zippedArchive: true,
+  maxFiles: '7d', // Keep logs for 7 days
+  level: 'error',
   format: format.combine(
     format.timestamp(),
     format.errors({ stack: true }),
     format.json()
-  ),
+  )
+});
+
+const combinedRotateTransport = new transports.DailyRotateFile({
+  filename: path.join(logDir, 'combined-%DATE%.log'),
+  datePattern: 'YYYY-MM-DD',
+  zippedArchive: true,
+  maxFiles: '7d', // Keep logs for 7 days
+  level: 'info',
+  format: format.combine(
+    format.timestamp(),
+    format.errors({ stack: true }),
+    format.json()
+  )
+});
+
+export const logger = createLogger({
   transports: [
     new transports.Console({
       format: format.combine(
@@ -29,15 +51,19 @@ export const logger = createLogger({
         format.simple()
       )
     }),
-    new transports.File({ 
-      filename: path.join(logDir, "error.log"), 
-      level: "error" 
-    }),
-    new transports.File({ 
-      filename: path.join(logDir, "combined.log"), 
-      level: "info"
-    })
+    errorRotateTransport,
+    combinedRotateTransport
   ]
 });
 
-// NOTE: I Changed it from logging the files to the docker container, to logging on host machine for easier debugging
+// Event listeners for rotate events
+errorRotateTransport.on('rotate', function(oldFilename, newFilename) {
+  logger.info(`Error log rotated from ${oldFilename} to ${newFilename}`);
+});
+
+combinedRotateTransport.on('rotate', function(oldFilename, newFilename) {
+  logger.info(`Combined log rotated from ${oldFilename} to ${newFilename}`);
+});
+
+// NOTE: Logs are now saved on the host machine with automatic rotation at midnight
+// and archived logs are kept for 7 days but can be changed to log in docker container
