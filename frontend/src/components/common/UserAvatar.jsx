@@ -1,5 +1,5 @@
 import { Avatar, Tooltip } from "@mui/material";
-import { useUser } from "../hooks/users";
+import { useUser } from "../../hooks/users";
 
 const UserAvatar = ({ userId }) => {
   const { data: user } = useUser(userId);

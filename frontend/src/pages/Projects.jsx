@@ -27,9 +27,9 @@ import {
 } from "../hooks/projects";
 import { useFiles, useUploadFile } from "../hooks/files";
 import { useSession } from "../hooks/auth";
-import TopBar from "../components/TopBar";
-import UserAvatar from "../components/UserAvatar";
 import CopyFileLinkButton from "../components/CopyFileLinkButton";
+import TopBar from "../components/common/TopBar"
+import UserAvatar from "../components/common/UserAvatar";
 
 const Sidebar = () => {
   const navigate = useNavigate();

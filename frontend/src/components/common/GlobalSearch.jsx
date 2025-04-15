@@ -21,7 +21,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import DescriptionIcon from "@mui/icons-material/Description";
 import FolderIcon from "@mui/icons-material/Folder";
 import CommentIcon from "@mui/icons-material/Comment";
-import { useSearch } from "../hooks/search";
+import { useSearch } from "../../hooks/search";
 
 // Loading skeleton for search results
 const SearchSkeleton = () => (

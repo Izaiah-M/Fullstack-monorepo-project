@@ -10,10 +10,10 @@ import {
 } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import { useLogout, useRemoveAccount } from "../hooks/auth";
+import { useLogout, useRemoveAccount } from "../../hooks/auth";
 import { useTheme } from "@mui/material/styles";
-import { useSession } from "../hooks/auth";
-import { useUser } from "../hooks/users";
+import { useSession } from "../../hooks/auth";
+import { useUser } from "../../hooks/users";
 import UserAvatar from "./UserAvatar";
 import GlobalSearch from "./GlobalSearch";
 

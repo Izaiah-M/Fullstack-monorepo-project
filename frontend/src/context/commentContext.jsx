@@ -9,10 +9,10 @@ export const CommentHighlightProvider = ({ children }) => {
   
   const highlightComment = (commentId) => {
     setHighlightedCommentId(commentId);
-    // Auto-clear highlight after 2 seconds
+    // Auto-clear highlight after 10 seconds
     setTimeout(() => {
       setHighlightedCommentId(null);
-    }, 4000);
+    }, 10000);
   };
   
   return (
@@ -22,5 +22,4 @@ export const CommentHighlightProvider = ({ children }) => {
   );
 };
 
-// Hook to access the highlight context
 export const useCommentHighlight = () => useContext(CommentHighlightContext);
