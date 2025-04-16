@@ -10,6 +10,7 @@ import {
 import File from "../../models/File.js";
 import Project from "../../models/Project.js";
 import { logger } from "../../utils/logger.js";
+import * as db from "../../utils/dbHandler.js";
 
 const uploadDir = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(uploadDir)) {
@@ -55,10 +56,7 @@ export async function uploadFile({ session, req }) {
       throw new ValidationError("Invalid file type");
     }
 
-    const project = await Project.findById(req.body.projectId);
-    if (!project) {
-      throw new NotFoundError("Project not found");
-    }
+    const project = await db.findById(Project, req.body.projectId, "", "Project");
     
     if (!project.authorId.equals(userId)) {
       throw new ForbiddenError();
@@ -74,7 +72,7 @@ export async function uploadFile({ session, req }) {
       createdAt: new Date(),
     });
 
-    await file.save();
+    await db.create(File, file, "File");
     
     logger.info("File uploaded successfully", {
       fileId: file._id,
@@ -141,10 +139,7 @@ export async function getFiles({ session, req }) {
       throw new ValidationError("Project ID is required");
     }
 
-    const project = await Project.findById(req.query.projectId);
-    if (!project) {
-      throw new NotFoundError("Project not found");
-    }
+    const project = await db.findById(Project, req.query.projectId, "", "Project");
 
     if (
       !project.authorId.equals(userId) &&
@@ -153,7 +148,7 @@ export async function getFiles({ session, req }) {
       throw new ForbiddenError();
     }
 
-    const files = await File.find({ projectId: project._id }).sort({ createdAt: 1 });
+    const files = await db.find(File, { projectId: project._id }, { sort: { createdAt: 1 } });
     
     logger.debug("Files retrieved", {
       userId,
@@ -200,15 +195,8 @@ export async function getFileById({ session, req }) {
     }
     const userId = sessionData.userId;
 
-    const file = await File.findById(req.params.id);
-    if (!file) {
-      throw new NotFoundError("File not found");
-    }
-
-    const project = await Project.findById(file.projectId);
-    if (!project) {
-      throw new NotFoundError("Project not found");
-    }
+    const file = await db.findById(File, req.params.id, "", "File");
+    const project = await db.findById(Project, file.projectId, "", "Project");
 
     if (
       !file.authorId.equals(userId) &&

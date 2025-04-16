@@ -6,6 +6,7 @@ import {
 import Project from "../../models/Project.js";
 import User from "../../models/User.js";
 import { logger } from "../../utils/logger.js";
+import * as db from "../../utils/dbHandler.js";
 
 /**
  * Create a new project
@@ -34,7 +35,7 @@ export async function createProject(session, req, body) {
       createdAt: new Date(),
     });
 
-    await project.save();
+    await db.create(Project, project, "Project");
     
     logger.info("Project created", {
       projectId: project._id,
@@ -75,9 +76,11 @@ export async function getProjects(session, req) {
     }
     const userId = sessionData.userId;
 
-    const projects = await Project.find({ 
-      $or: [{ authorId: userId }, { reviewers: userId }] 
-    }).sort({ createdAt: 1 });
+    const projects = await db.find(
+      Project, 
+      { $or: [{ authorId: userId }, { reviewers: userId }] },
+      { sort: { createdAt: 1 } }
+    );
     
     logger.debug("Projects retrieved", {
       userId,
@@ -125,16 +128,14 @@ export async function addReviewer(session, req, params, body) {
     const { projectId } = params;
     const { email } = body;
 
-    const project = await Project.findById(projectId);
-    if (!project) {
-      throw new NotFoundError("Project not found");
-    }
+    const project = await db.findById(Project, projectId, "", "Project");
 
     if (!project.authorId.equals(userId)) {
       throw new ForbiddenError("Only the project owner can add reviewers");
     }
 
-    const existingReviewer = await User.findOne({ email });
+    // Using findOne with required=false to not throw NotFoundError if user doesn't exist
+    const existingReviewer = await db.findOne(User, { email }, "", "User", false);
     let reviewerId;
     
     if (existingReviewer) {
@@ -150,7 +151,7 @@ export async function addReviewer(session, req, params, body) {
       }
     } else {
       const newUser = new User({ email });
-      await newUser.save();
+      await db.create(User, newUser, "User");
       reviewerId = newUser._id;
       
       logger.info("Created new user for reviewer", {
@@ -159,12 +160,15 @@ export async function addReviewer(session, req, params, body) {
       });
     }
 
-    await Project.updateOne(
-      { _id: projectId }, 
-      { $addToSet: { reviewers: reviewerId } }
+    await db.updateOne(
+      Project,
+      { _id: projectId },
+      { $addToSet: { reviewers: reviewerId } },
+      {},
+      "Project"
     );
 
-    const updatedProject = await Project.findById(projectId);
+    const updatedProject = await db.findById(Project, projectId, "", "Project");
     
     logger.info("Reviewer added to project", {
       projectId,

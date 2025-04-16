@@ -1,7 +1,7 @@
-// src/modules/comments/comment.service.js
 import { NotFoundError, UnauthorizedError } from "../../utils/errors.js";
 import Comment from "../../models/Comment.js";
 import { logger } from "../../utils/logger.js";
+import * as db from "../../utils/dbHandler.js";
 
 /**
  * Get comments for a file with pagination
@@ -29,14 +29,18 @@ export async function getComments(session, req, query) {
     
     const skip = (pageNum - 1) * limitNum;
 
-    // Get total count and comments in parallel
-    const [total, comments] = await Promise.all([
-      Comment.countDocuments({ fileId }),
-      Comment.find({ fileId })
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limitNum)
-    ]);
+    // Get total count using executeDb
+    const total = await db.executeDb(
+      () => Comment.countDocuments({ fileId }),
+      `Failed to count comments for file ${fileId}`
+    );
+    
+    // Get comments using find with options
+    const comments = await db.find(Comment, { fileId }, {
+      sort: { createdAt: -1 },
+      skip: skip,
+      limit: limitNum
+    });
       
     const totalPages = Math.ceil(total / limitNum);
     const hasMore = pageNum < totalPages;
@@ -116,15 +120,12 @@ export async function createComment(session, req, body) {
     if (parentId) {
       commentData.parentId = parentId;
       
-      const parentComment = await Comment.findById(parentId);
-      if (!parentComment) {
-        throw new NotFoundError("Parent comment not found");
-      }
+      // Using findById which will throw NotFoundError if parent doesn't exist
+      await db.findById(Comment, parentId, "", "Parent comment");
     }
 
     // Create and save the comment
-    const comment = new Comment(commentData);
-    await comment.save();
+    const comment = await db.create(Comment, commentData, "Comment");
 
     // Get sender socket ID from headers
     const senderSocketId = req.headers["x-socket-id"] || null;

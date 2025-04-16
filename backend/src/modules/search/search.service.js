@@ -3,6 +3,7 @@ import Project from "../../models/Project.js";
 import File from "../../models/File.js";
 import Comment from "../../models/Comment.js";
 import { logger } from "../../utils/logger.js";
+import * as db from "../../utils/dbHandler.js";
 
 /**
  * Search across projects, files, and comments
@@ -109,24 +110,27 @@ export async function search(session, redis, req, query) {
 async function searchProjects(query, userId) {
   try {
     const searchRegex = new RegExp(query, "i");
-    return await Project.find({ 
-      $and: [
-        { 
-          $or: [
-            { name: searchRegex },
-            { description: searchRegex }
-          ]
-        },
-        {
-          $or: [
-            { authorId: userId },
-            { reviewers: userId }
-          ]
-        }
-      ]
-    })
-    .sort({ createdAt: -1 })
-    .limit(5);
+    return await db.executeDb(
+      () => Project.find({ 
+        $and: [
+          { 
+            $or: [
+              { name: searchRegex },
+              { description: searchRegex }
+            ]
+          },
+          {
+            $or: [
+              { authorId: userId },
+              { reviewers: userId }
+            ]
+          }
+        ]
+      })
+      .sort({ createdAt: -1 })
+      .limit(5),
+      "Error searching for projects"
+    );
   } catch (error) {
     logger.error("Error in project search", { 
       error: error.message,
@@ -146,49 +150,52 @@ async function searchProjects(query, userId) {
 async function searchFiles(query, userId) {
   try {
     const searchRegex = new RegExp(query, "i");
-    return await File.aggregate([
-      {
-        $match: {
-          name: searchRegex
+    return await db.executeDb(
+      () => File.aggregate([
+        {
+          $match: {
+            name: searchRegex
+          }
+        },
+        {
+          $lookup: {
+            from: "projects",
+            localField: "projectId",
+            foreignField: "_id",
+            as: "project"
+          }
+        },
+        {
+          $unwind: "$project"
+        },
+        {
+          $match: {
+            $or: [
+              { "project.authorId": userId },
+              { "project.reviewers": userId }
+            ]
+          }
+        },
+        {
+          $project: {
+            _id: 1,
+            name: 1,
+            projectId: 1,
+            authorId: 1,
+            path: 1,
+            createdAt: 1,
+            "project.name": 1
+          }
+        },
+        {
+          $sort: { createdAt: -1 }
+        },
+        {
+          $limit: 5
         }
-      },
-      {
-        $lookup: {
-          from: "projects",
-          localField: "projectId",
-          foreignField: "_id",
-          as: "project"
-        }
-      },
-      {
-        $unwind: "$project"
-      },
-      {
-        $match: {
-          $or: [
-            { "project.authorId": userId },
-            { "project.reviewers": userId }
-          ]
-        }
-      },
-      {
-        $project: {
-          _id: 1,
-          name: 1,
-          projectId: 1,
-          authorId: 1,
-          path: 1,
-          createdAt: 1,
-          "project.name": 1
-        }
-      },
-      {
-        $sort: { createdAt: -1 }
-      },
-      {
-        $limit: 5
-      }
-    ]);
+      ]),
+      "Error searching for files"
+    );
   } catch (error) {
     logger.error("Error in file search", { 
       error: error.message,
@@ -208,63 +215,66 @@ async function searchFiles(query, userId) {
 async function searchComments(query, userId) {
   try {
     const searchRegex = new RegExp(query, "i");
-    return await Comment.aggregate([
-      {
-        $match: { 
-          body: searchRegex 
+    return await db.executeDb(
+      () => Comment.aggregate([
+        {
+          $match: { 
+            body: searchRegex 
+          }
+        },
+        {
+          $lookup: {
+            from: "files",
+            localField: "fileId",
+            foreignField: "_id",
+            as: "file"
+          }
+        },
+        {
+          $unwind: "$file"
+        },
+        {
+          $lookup: {
+            from: "projects",
+            localField: "file.projectId",
+            foreignField: "_id",
+            as: "project"
+          }
+        },
+        {
+          $unwind: "$project"
+        },
+        {
+          $match: {
+            $or: [
+              { "project.authorId": userId },
+              { "project.reviewers": userId }
+            ]
+          }
+        },
+        {
+          $project: {
+            _id: 1,
+            fileId: 1,
+            authorId: 1,
+            body: 1,
+            x: 1,
+            y: 1,
+            parentId: 1,
+            createdAt: 1,
+            "file.name": 1,
+            "project.name": 1
+          }
+        },
+        {
+          $sort: { createdAt: -1 }
+        },
+        {
+          $limit: 5
         }
-      },
-      {
-        $lookup: {
-          from: "files",
-          localField: "fileId",
-          foreignField: "_id",
-          as: "file"
-        }
-      },
-      {
-        $unwind: "$file"
-      },
-      {
-        $lookup: {
-          from: "projects",
-          localField: "file.projectId",
-          foreignField: "_id",
-          as: "project"
-        }
-      },
-      {
-        $unwind: "$project"
-      },
-      {
-        $match: {
-          $or: [
-            { "project.authorId": userId },
-            { "project.reviewers": userId }
-          ]
-        }
-      },
-      {
-        $project: {
-          _id: 1,
-          fileId: 1,
-          authorId: 1,
-          body: 1,
-          x: 1,
-          y: 1,
-          parentId: 1,
-          createdAt: 1,
-          "file.name": 1,
-          "project.name": 1
-        }
-      },
-      {
-        $sort: { createdAt: -1 }
-      },
-      {
-        $limit: 5
-      }
-    ]);
+      ]),
+      "Error searching for comments"
+    );
   } catch (error) {
     logger.error("Error in comment search", { 
       error: error.message,

@@ -5,6 +5,7 @@ import User from '../../models/User.js';
 import Project from '../../models/Project.js';
 import File from '../../models/File.js';
 import { logger } from '../../utils/logger.js';
+import * as db from '../../utils/dbHandler.js';
 
 /**
  * Register a new user or update existing user without password
@@ -21,7 +22,8 @@ export async function signupService(session, res, credentials) {
   try {
     const { email, password } = credentials;
     
-    const existingUser = await User.findOne({ email });
+    // Using findOne with required=false to not throw NotFoundError if user doesn't exist
+    const existingUser = await db.findOne(User, { email }, "", "User", false);
 
     if (existingUser && existingUser.password) {
       throw new ValidationError('User already exists');
@@ -31,9 +33,12 @@ export async function signupService(session, res, credentials) {
     let userId;
 
     if (existingUser) {
-      await User.updateOne(
+      await db.updateOne(
+        User,
         { _id: existingUser._id },
-        { $set: { password: hashedPassword } }
+        { $set: { password: hashedPassword } },
+        {},
+        "User"
       );
       userId = existingUser._id;
       
@@ -42,15 +47,15 @@ export async function signupService(session, res, credentials) {
         email 
       });
     } else {
-      const newUser = new User({
+      const newUser = {
         email,
         password: hashedPassword,
-      });
-      await newUser.save();
-      userId = newUser._id;
+      };
+      const createdUser = await db.create(User, newUser, "User");
+      userId = createdUser._id;
       
       logger.info('New user created', { 
-        userId: newUser._id.toString(),
+        userId: createdUser._id.toString(),
         email 
       });
     }
@@ -87,7 +92,8 @@ export async function loginService(session, res, credentials) {
   try {
     const { email, password } = credentials;
     
-    const user = await User.findOne({ email });
+    // Using findOne with required=false since we're checking for null explicitly
+    const user = await db.findOne(User, { email }, "", "User", false);
 
     if (!user || !(await bcrypt.compare(password, user.password))) {
       throw new UnauthorizedError('Invalid credentials');
@@ -167,11 +173,14 @@ export async function removeAccountService(session, req, res) {
     
     const userId = sessionData.userId;
     
-    await User.deleteOne({ _id: userId });
+    // Delete user
+    await db.deleteOne(User, { _id: userId }, "User");
     
-    const projectResult = await Project.deleteMany({ authorId: userId });
+    // Delete projects
+    const projectResult = await db.deleteMany(Project, { authorId: userId }, "Project");
     
-    const files = await File.find({ authorId: userId });
+    // Get files
+    const files = await db.find(File, { authorId: userId });
     
     const fileDeleteResults = [];
     
@@ -191,8 +200,9 @@ export async function removeAccountService(session, req, res) {
     }
     
     // Delete file records from database
-    const fileDbResult = await File.deleteMany({ authorId: userId });
+    const fileDbResult = await db.deleteMany(File, { authorId: userId }, "File");
     
+    // Remove session
     await session.remove(req, res);
     
     logger.info('Account removed', {
