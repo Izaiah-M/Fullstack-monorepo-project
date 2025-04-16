@@ -7,9 +7,16 @@ import { logger } from "./logger.js";
  * @param {Object} redis - Redis client
  */
 export function setupGracefulShutdown(server, redis) {
-  const shutdown = async () => {
-    logger.info("Shutting down server gracefully");
+  const shutdown = async (signal) => {
+    logger.info(`Received ${signal || 'shutdown'} signal. Shutting down gracefully`);
     
+    // Set a timeout to force exit if graceful shutdown takes too long
+    const forceExitTimeout = setTimeout(() => {
+      logger.error("Forced shutdown due to timeout");
+      process.exit(1);
+    }, 30000);
+    
+    // First stop accepting new connections
     server.close(() => {
       logger.info("HTTP server closed");
     });
@@ -23,23 +30,31 @@ export function setupGracefulShutdown(server, redis) {
         logger.info("Redis connection closed");
       }
       
+      clearTimeout(forceExitTimeout);
       logger.info("Graceful shutdown completed");
       process.exit(0);
     } catch (error) {
+      clearTimeout(forceExitTimeout);
       logger.error("Error during shutdown", { error: error.message });
       process.exit(1);
     }
   };
 
-  // Setup signal handlers
-  process.on("SIGINT", shutdown);
-  process.on("SIGTERM", shutdown);
+  process.on("SIGINT", () => shutdown("SIGINT"));
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
   
+  // Unhandled promise rejections - log but don't exit in when in prod
   process.on("unhandledRejection", (reason, promise) => {
-    logger.error("Unhandled Rejection", { 
+    logger.error("Unhandled Promise Rejection", { 
       reason: reason instanceof Error ? reason.message : String(reason),
       stack: reason instanceof Error ? reason.stack : undefined
     });
+    
+    // In prod, we might want to continue despite unhandled rejections
+    // In dev, we might want to crash to highlight the issue
+    if (process.env.NODE_ENV !== 'production') {
+      setTimeout(() => process.exit(1), 1000);
+    }
   });
 
   process.on("uncaughtException", (error) => {
@@ -48,9 +63,7 @@ export function setupGracefulShutdown(server, redis) {
       stack: error.stack 
     });
     
-    // Give logger time to flush before exiting
-    setTimeout(() => {
-      process.exit(1);
-    }, 1000);
+    // Attempt graceful shutdown
+    shutdown("UNCAUGHT_EXCEPTION");
   });
 }

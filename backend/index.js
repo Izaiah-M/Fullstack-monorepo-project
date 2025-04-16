@@ -7,7 +7,7 @@ import Redis from "./src/config/redis.js";
 import { setupRoutes } from "./src/routes/index.js";
 import { setupSocket } from "./src/config/socket.js";
 import { errorMiddleware } from "./src/middleware/error.middleware.js";
-import { connectDB, closeDB } from "./src/config/db.js";
+import { connectDB } from "./src/config/db.js";
 import { logger } from "./src/utils/logger.js";
 import { setupGracefulShutdown } from "./src/utils/shutdown.js";
 

@@ -6,7 +6,7 @@ import CommentRoutes from "../modules/comments/comment.routes.js";
 import SearchRoutes from "../modules/search/search.routes.js";
 
 /**
- * Sets up all application routes
+ * Sets up all application routes in a central place
  * @param {Object} app - Express app instance
  * @param {Object} services - Services to inject into routes
  */
