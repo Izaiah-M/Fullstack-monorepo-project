@@ -6,34 +6,42 @@ import {
   removeAccountService,
   logoutService,
 } from './auth.service.js';
+import { asyncHandler } from '../../utils/asyncHandler.js';
 
+/**
+ * Auth controller factory function
+ * 
+ * @param {Object} params - Controller dependencies
+ * @param {Object} params.session - Session service
+ * @returns {Object} Controller methods
+ */
 export function AuthController({ session }) {
   return {
-    signup: async (req, res) => {
+    signup: asyncHandler(async (req, res) => {
       const credentials = CredentialsSchema.parse(req.body);
       const result = await signupService(session, res, credentials);
       res.status(201).json(result);
-    },
+    }),
 
-    login: async (req, res) => {
+    login: asyncHandler(async (req, res) => {
       const credentials = CredentialsSchema.parse(req.body);
       const result = await loginService(session, res, credentials);
       res.json(result);
-    },
+    }),
 
-    getSession: async (req, res) => {
+    getSession: asyncHandler(async (req, res) => {
       const result = await getSessionService(session, req);
       res.json(result);
-    },
+    }),
 
-    removeAccount: async (req, res) => {
+    removeAccount: asyncHandler(async (req, res) => {
       await removeAccountService(session, req, res);
       res.status(200).end();
-    },
+    }),
 
-    logout: async (req, res) => {
+    logout: asyncHandler(async (req, res) => {
       await logoutService(session, req, res);
       res.status(200).end();
-    },
+    }),
   };
 }
