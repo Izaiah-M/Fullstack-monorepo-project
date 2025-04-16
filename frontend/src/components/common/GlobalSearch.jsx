@@ -46,8 +46,11 @@ const GlobalSearch = () => {
     setIsOpen,
     hasResults,
     showResults,
+    showNoResults,
     handleSearchFocus,
-    handleSearchBlur
+    handleSearchBlur,
+    categoriesWithResults,
+    resultCategoryCount
   } = useSearch();
   
   const handleSearchChange = (e) => {
@@ -70,6 +73,116 @@ const GlobalSearch = () => {
       default:
         break;
     }
+  };
+
+  // Determine what content to render in the dropdown
+  const renderSearchContent = () => {
+    if (isSearching) {
+      return <SearchSkeleton />;
+    }
+    
+    if (showNoResults) {
+      return (
+        <Box sx={{ p: 2, textAlign: 'center' }} data-testid="no-results-message">
+          <Typography color="text.secondary">
+            No results found for "{query}"
+          </Typography>
+        </Box>
+      );
+    }
+    
+    if (hasResults) {
+      return (
+        <List dense>
+          {/* Projects section - only show if there are projects OR there are results in multiple categories */}
+          {results.projects?.length > 0 && (resultCategoryCount > 1 ? true : categoriesWithResults.hasProjects) && (
+            <>
+              <ListItem sx={{ py: 0.5 }}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Projects
+                </Typography>
+              </ListItem>
+              
+              {results.projects.map(project => (
+                <ListItemButton 
+                  key={project._id} 
+                  onClick={() => handleItemClick("project", project)}
+                >
+                  <ListItemIcon sx={{ minWidth: 36 }}>
+                    <FolderIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText 
+                    primary={project.name}
+                    secondary={project.description?.substring(0, 60) || ""}
+                  />
+                </ListItemButton>
+              ))}
+              
+              {/* Only show divider if there are multiple categories */}
+              {resultCategoryCount > 1 && <Divider component="li" />}
+            </>
+          )}
+          
+          {/* Files section - only show if there are files OR there are results in multiple categories */}
+          {results.files?.length > 0 && (resultCategoryCount > 1 ? true : categoriesWithResults.hasFiles) && (
+            <>
+              <ListItem sx={{ py: 0.5 }}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Files
+                </Typography>
+              </ListItem>
+              
+              {results.files.map(file => (
+                <ListItemButton 
+                  key={file._id} 
+                  onClick={() => handleItemClick("file", file)}
+                >
+                  <ListItemIcon sx={{ minWidth: 36 }}>
+                    <DescriptionIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText 
+                    primary={file.name}
+                    secondary={`Project: ${file.project?.name || "Unknown"}`}
+                  />
+                </ListItemButton>
+              ))}
+              
+              {/* Only show divider if there are comments after this section */}
+              {results.comments?.length > 0 && resultCategoryCount > 1 && <Divider component="li" />}
+            </>
+          )}
+          
+          {/* Comments section - only show if there are comments OR there are results in multiple categories */}
+          {results.comments?.length > 0 && (resultCategoryCount > 1 ? true : categoriesWithResults.hasComments) && (
+            <>
+              <ListItem sx={{ py: 0.5 }}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Comments
+                </Typography>
+              </ListItem>
+              
+              {results.comments.map(comment => (
+                <ListItemButton 
+                  key={comment._id} 
+                  onClick={() => handleItemClick("comment", comment)}
+                >
+                  <ListItemIcon sx={{ minWidth: 36 }}>
+                    <CommentIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText 
+                    primary={comment.body.substring(0, 60) + (comment.body.length > 60 ? "..." : "")}
+                    secondary={`File: ${comment.file?.name || "Unknown"}`}
+                  />
+                </ListItemButton>
+              ))}
+            </>
+          )}
+        </List>
+      );
+    }
+    
+    // Empty search box or other cases
+    return null;
   };
   
   return (
@@ -99,7 +212,7 @@ const GlobalSearch = () => {
       />
       
       <Popper
-        open={isOpen && showResults}
+        open={isOpen && (showResults || showNoResults)}
         anchorEl={searchRef.current}
         placement="bottom-start"
         transition
@@ -107,101 +220,12 @@ const GlobalSearch = () => {
       >
         {({ TransitionProps }) => (
           <Fade {...TransitionProps} timeout={200}>
-            <Paper elevation={3} sx={{ mt: 0.5, maxHeight: 500, overflow: "auto" }}>
-              {isSearching ? (
-                <SearchSkeleton />
-              ) : !hasResults && showResults ? (
-                <Box sx={{ p: 2, textAlign: 'center' }}>
-                  <Typography color="text.secondary">
-                    No results found for "{query}"
-                  </Typography>
-                </Box>
-              ) : (
-                <List dense>
-                  {/* Projects section */}
-                  {results.projects?.length > 0 && (
-                    <>
-                      <ListItem sx={{ py: 0.5 }}>
-                        <Typography variant="subtitle2" color="text.secondary">
-                          Projects
-                        </Typography>
-                      </ListItem>
-                      
-                      {results.projects.map(project => (
-                        <ListItemButton 
-                          key={project._id} 
-                          onClick={() => handleItemClick("project", project)}
-                        >
-                          <ListItemIcon sx={{ minWidth: 36 }}>
-                            <FolderIcon fontSize="small" />
-                          </ListItemIcon>
-                          <ListItemText 
-                            primary={project.name}
-                            secondary={project.description?.substring(0, 60) || ""}
-                          />
-                        </ListItemButton>
-                      ))}
-                      
-                      <Divider component="li" />
-                    </>
-                  )}
-                  
-                  {/* Files section */}
-                  {results.files?.length > 0 && (
-                    <>
-                      <ListItem sx={{ py: 0.5 }}>
-                        <Typography variant="subtitle2" color="text.secondary">
-                          Files
-                        </Typography>
-                      </ListItem>
-                      
-                      {results.files.map(file => (
-                        <ListItemButton 
-                          key={file._id} 
-                        //   button
-                          onClick={() => handleItemClick("file", file)}
-                        >
-                          <ListItemIcon sx={{ minWidth: 36 }}>
-                            <DescriptionIcon fontSize="small" />
-                          </ListItemIcon>
-                          <ListItemText 
-                            primary={file.name}
-                            secondary={`Project: ${file.project?.name || "Unknown"}`}
-                          />
-                        </ListItemButton>
-                      ))}
-                      
-                      <Divider component="li" />
-                    </>
-                  )}
-                  
-                  {/* Comments section */}
-                  {results.comments?.length > 0 && (
-                    <>
-                      <ListItem sx={{ py: 0.5 }}>
-                        <Typography variant="subtitle2" color="text.secondary">
-                          Comments
-                        </Typography>
-                      </ListItem>
-                      
-                      {results.comments.map(comment => (
-                        <ListItemButton 
-                          key={comment._id} 
-                          onClick={() => handleItemClick("comment", comment)}
-                        >
-                          <ListItemIcon sx={{ minWidth: 36 }}>
-                            <CommentIcon fontSize="small" />
-                          </ListItemIcon>
-                          <ListItemText 
-                            primary={comment.body.substring(0, 60) + (comment.body.length > 60 ? "..." : "")}
-                            secondary={`File: ${comment.file?.name || "Unknown"}`}
-                          />
-                        </ListItemButton>
-                      ))}
-                    </>
-                  )}
-                </List>
-              )}
+            <Paper 
+              elevation={3} 
+              sx={{ mt: 0.5, maxHeight: 500, overflow: "auto" }}
+              data-testid="search-results-dropdown"
+            >
+              {renderSearchContent()}
             </Paper>
           </Fade>
         )}

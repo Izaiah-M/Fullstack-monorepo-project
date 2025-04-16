@@ -10,6 +10,11 @@ export async function search(session, redis, req, query) {
   const userId = sessionData.userId;
   const { q } = query;
   
+  // Empty query should return no results
+  if (!q || q.trim() === '') {
+    return { projects: [], files: [], comments: [] };
+  }
+  
   // Try to get cached results first
   const cachedResults = await redis.getSearchResults(q, userId.toString());
   if (cachedResults) {
@@ -21,16 +26,22 @@ export async function search(session, redis, req, query) {
   let results = { projects: [], files: [], comments: [] };
   const searches = [];
   
-  // Project search 
+  // Project search - FIX: properly structure the query with $and to combine the search and access conditions
   searches.push(
     Project.find({ 
-      $or: [
-        { name: searchRegex },
-        { description: searchRegex }
-      ],
-      $or: [
-        { authorId: userId },
-        { reviewers: userId }
+      $and: [
+        { 
+          $or: [
+            { name: searchRegex },
+            { description: searchRegex }
+          ]
+        },
+        {
+          $or: [
+            { authorId: userId },
+            { reviewers: userId }
+          ]
+        }
       ]
     })
     .sort({ createdAt: -1 })
@@ -38,7 +49,7 @@ export async function search(session, redis, req, query) {
     .then(data => results.projects = data)
   );
   
-  // File search using  aggregate
+  // File search using aggregate
   searches.push(
     File.aggregate([
       {
@@ -150,7 +161,25 @@ export async function search(session, redis, req, query) {
   
   await Promise.all(searches);
   
-  // Cache the results
+  // Check if there are any actual results that match the search query
+  const totalResults = results.projects.length + results.files.length + results.comments.length;
+  
+  // If no results were found, return a special response with noResults flag
+  if (totalResults === 0) {
+    const noResultsResponse = { 
+      projects: [], 
+      files: [], 
+      comments: [],
+      noResults: true 
+    };
+    
+    // Cache the no-results response to avoid unnecessary searches
+    await redis.setSearchResults(q, userId.toString(), noResultsResponse);
+    console.log(`No search results found for "${q}"`);
+    return noResultsResponse;
+  }
+  
+  // We have results, so cache them and return
   await redis.setSearchResults(q, userId.toString(), results);
   
   return results;

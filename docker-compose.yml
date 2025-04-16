@@ -41,6 +41,7 @@ services:
       COOKIE_SECRET: "s3cr3t"
       MONGO_URI: "mongodb://root:1234@database:27017"
       REDIS_URI: "redis://default:1234@redis:6379"
+      COMPOSE_FILE_WATCHER_DEBUG: "1"
 
   database:
     image: mongo:5.0
