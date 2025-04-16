@@ -14,7 +14,7 @@ export function setupGracefulShutdown(server, redis) {
     const forceExitTimeout = setTimeout(() => {
       logger.error("Forced shutdown due to timeout");
       process.exit(1);
-    }, 30000);
+    }, 30000); // 30 seconds timeout
     
     // First stop accepting new connections
     server.close(() => {
@@ -22,6 +22,7 @@ export function setupGracefulShutdown(server, redis) {
     });
     
     try {
+      // Close database connections
       await closeDB();
       logger.info("Database connection closed");
       
@@ -40,30 +41,34 @@ export function setupGracefulShutdown(server, redis) {
     }
   };
 
+  // Setup signal handlers
   process.on("SIGINT", () => shutdown("SIGINT"));
   process.on("SIGTERM", () => shutdown("SIGTERM"));
   
-  // Unhandled promise rejections - log but don't exit in when in prod
+  // Unhandled promise rejections
   process.on("unhandledRejection", (reason, promise) => {
     logger.error("Unhandled Promise Rejection", { 
       reason: reason instanceof Error ? reason.message : String(reason),
       stack: reason instanceof Error ? reason.stack : undefined
     });
     
-    // In prod, we might want to continue despite unhandled rejections
-    // In dev, we might want to crash to highlight the issue
-    if (process.env.NODE_ENV !== 'production') {
-      setTimeout(() => process.exit(1), 1000);
-    }
+    // DEV MODE: Exit on unhandled rejections
+    // For production, comment out the following line
+    setTimeout(() => process.exit(1), 1000);
   });
 
+  // Uncaught exceptions
   process.on("uncaughtException", (error) => {
     logger.error("Uncaught Exception", { 
       error: error.message, 
       stack: error.stack 
     });
     
-    // Attempt graceful shutdown
+    // Use the same shutdown procedure for uncaught exceptions to ensure clean exit
     shutdown("UNCAUGHT_EXCEPTION");
+    
+    // DEV MODE: If shutdown fails, force exit
+    // For production, comment out the following line and consider more robust recovery
+    setTimeout(() => process.exit(1), 5000);
   });
 }

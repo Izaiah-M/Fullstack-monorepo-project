@@ -26,8 +26,11 @@ services:
     develop:
       watch:
         - action: sync+restart
-          path: ./backend
-          target: /backend/
+          path: ./backend/src
+          target: /backend/src/
+        - action: sync+restart
+          path: ./backend/index.js
+          target: /backend/index.js
         - action: rebuild
           path: ./backend/package.json
     ports:

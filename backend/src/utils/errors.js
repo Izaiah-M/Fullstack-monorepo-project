@@ -78,3 +78,16 @@ export class ServerError extends ApplicationError {
     this.name = "Server Error";
   }
 }
+
+/**
+ * Conflict error for duplicate resources
+ */
+export class ConflictError extends ApplicationError {
+  /**
+   * @param {string} message - Conflict error message
+   * @param {string} code - Optional error code
+   */
+  constructor(message = "Resource already exists", code = undefined) {
+    super(message, 409, code);
+  }
+}
