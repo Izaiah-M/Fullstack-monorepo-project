@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useCallback } from "react";
 import { Box, Typography, CircularProgress } from "@mui/material";
 import { useInfiniteComments } from "../../hooks/comments";
 import CommentThread from "./CommentThread";
@@ -15,7 +15,10 @@ const CommentBar = ({ fileId }) => {
   const targetCommentId = searchParams.get("commentId");
   const { highlightComment } = useCommentHighlight();
   
-  const [isSearchingComment, setIsSearchingComment] = useState(!!targetCommentId);
+  // Track the searching state and whether regular infinite scroll should be enabled
+  const [isSearchingComment, setIsSearchingComment] = useState(false);
+  const [commentFound, setCommentFound] = useState(false);
+  const [enableInfiniteScroll, setEnableInfiniteScroll] = useState(true);
   
   const { 
     data, 
@@ -27,29 +30,8 @@ const CommentBar = ({ fileId }) => {
     error
   } = useInfiniteComments({ fileId, limit: 10 });
   
-  // Setup normal intersection observer for infinite scrolling
-  useEffect(() => {
-    // Skip if we're still loading or there's nothing more to load
-    if (isLoading || !hasNextPage || isFetchingNextPage || !loadMoreRef.current) return;
-    
-    const observer = new IntersectionObserver(
-      (entries) => {
-        // If the load more element is visible, fetch the next page
-        if (entries[0].isIntersecting && hasNextPage) {
-          fetchNextPage();
-        }
-      }, 
-      { root: containerRef.current, threshold: 0.1 }
-    );
-    
-    observer.observe(loadMoreRef.current);
-    
-    return () => observer.disconnect();
-  }, [fetchNextPage, hasNextPage, isLoading, isFetchingNextPage]);
-  
-  // Process comments from all loaded pages
-  const processComments = () => {
-    if (!data?.pages) return { topLevelComments: [], repliesMap: {} };
+  const processComments = useCallback(() => {
+    if (!data?.pages) return { topLevelComments: [], repliesMap: {}, allComments: [] };
     
     // Merge all comments from all loaded pages
     const allComments = data.pages.flatMap(page => page.comments);
@@ -78,38 +60,104 @@ const CommentBar = ({ fileId }) => {
       );
     });
     
-    return { topLevelComments, repliesMap };
-  };
+    return { topLevelComments, repliesMap, allComments };
+  }, [data]);
   
-  const { topLevelComments, repliesMap } = processComments();
+  const { topLevelComments, repliesMap, allComments } = processComments();
   
-  // Check if we need to load more pages to find a comment
+  // Handle comment search when URL has commentId
   useEffect(() => {
-    if (!targetCommentId || !isSearchingComment || isLoading || isFetchingNextPage) return;
+    // If there's a target comment ID in the URL, start searching
+    if (targetCommentId && !commentFound) {
+      setIsSearchingComment(true);
+      setEnableInfiniteScroll(false);
+    } else if (!targetCommentId) {
+      // If URL doesn't have a comment ID, reset search states
+      setIsSearchingComment(false);
+      setCommentFound(false);
+      setEnableInfiniteScroll(true);
+    }
+  }, [targetCommentId, commentFound]);
+
+  // Check if the target comment exists in the current data
+  const findTargetComment = useCallback(() => {
+    if (!targetCommentId || !allComments.length) return null;
     
-    const allComments = data?.pages?.flatMap(page => page.comments) || [];
-    
-    // Check if target comment is in the current dataset, either as a comment or a reply
+    // Check if target comment is in the current dataset
     const foundComment = allComments.find(comment => comment._id === targetCommentId);
-    const foundParentWithReply = allComments.find(comment => 
-      comment.parentId === targetCommentId || 
-      repliesMap[comment._id]?.some(reply => reply._id === targetCommentId)
+    
+    // Also check if it's a reply to any comment
+    const foundAsReply = !foundComment && Object.keys(repliesMap).some(parentId => 
+      repliesMap[parentId].some(reply => reply._id === targetCommentId)
     );
     
-    if (foundComment || foundParentWithReply) {
-      // Found the comment, highlight it
+    return foundComment || foundAsReply;
+  }, [targetCommentId, allComments, repliesMap]);
+  
+  // Search for the target comment when loading or fetching new pages
+  useEffect(() => {
+    if (!isSearchingComment || !targetCommentId || isLoading || isFetchingNextPage || commentFound) {
+      return;
+    }
+    
+    const foundTarget = findTargetComment();
+    
+    if (foundTarget) {
+      // Found the target comment, highlight it
       highlightComment(targetCommentId);
+      setCommentFound(true);
       setIsSearchingComment(false);
+      
+      // Re-enable infinite scroll after a short delay to ensure UI updates
+      setTimeout(() => {
+        setEnableInfiniteScroll(true);
+      }, 500);
     } else if (hasNextPage) {
-      // If we haven't found the comment and there are more pages, fetch the next page
+      // If target not found and there are more pages, fetch the next page
       fetchNextPage();
     } else {
       // No more pages but comment not found, stop searching
       setIsSearchingComment(false);
+      setEnableInfiniteScroll(true);
     }
-  }, [data, targetCommentId, isSearchingComment, isLoading, isFetchingNextPage, 
-      fetchNextPage, hasNextPage, highlightComment, repliesMap]);
+  }, [
+    targetCommentId, isSearchingComment, isLoading, isFetchingNextPage, 
+    hasNextPage, fetchNextPage, highlightComment, findTargetComment, commentFound
+  ]);
+  
+  // Setup normal intersection observer for infinite scrolling - only when enabled
+  useEffect(() => {
+    // Skip if we're searching for a comment, still loading, or there's nothing more to load
+    if (isSearchingComment || !enableInfiniteScroll || isLoading || !hasNextPage || 
+        isFetchingNextPage || !loadMoreRef.current) {
+      return;
+    }
+    
+    const observer = new IntersectionObserver(
+      (entries) => {
+        // If the load more element is visible, fetch the next page
+        if (entries[0].isIntersecting && hasNextPage && enableInfiniteScroll) {
+          fetchNextPage();
+        }
+      }, 
+      { root: containerRef.current, threshold: 0.1 }
+    );
+    
+    observer.observe(loadMoreRef.current);
+    
+    return () => observer.disconnect();
+  }, [
+    fetchNextPage, hasNextPage, isLoading, isFetchingNextPage, 
+    isSearchingComment, enableInfiniteScroll
+  ]);
 
+  // Reset search state when fileId changes
+  useEffect(() => {
+    setIsSearchingComment(!!targetCommentId);
+    setCommentFound(false);
+    setEnableInfiniteScroll(!targetCommentId);
+  }, [fileId, targetCommentId]);
+  
   if (isError) {
     return (
       <Box 
@@ -169,7 +217,7 @@ const CommentBar = ({ fileId }) => {
           </Box>
           
           {/* Show searching indicator if we're actively looking for a comment */}
-          {isSearchingComment && hasNextPage && (
+          {isSearchingComment && (
             <Box 
               sx={{ 
                 textAlign: 'center', 
@@ -185,7 +233,7 @@ const CommentBar = ({ fileId }) => {
           )}
           
           {/* Normal load more indicator for infinite scrolling */}
-          {hasNextPage && !isSearchingComment && (
+          {hasNextPage && !isSearchingComment && enableInfiniteScroll && (
             <Box 
               ref={loadMoreRef} 
               sx={{ 

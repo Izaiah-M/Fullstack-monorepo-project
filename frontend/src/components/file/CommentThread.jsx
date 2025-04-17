@@ -27,15 +27,20 @@ const CommentThread = ({ comment, replies = [] }) => {
   
   // Determine if this comment or any of its replies should be highlighted
   const isHighlighted = highlightedCommentId === comment._id;
-  const hasHighlightedReply = replies.some(reply => highlightedCommentId === reply._id);
+  const highlightedReply = replies.find(reply => highlightedCommentId === reply._id);
+  const hasHighlightedReply = !!highlightedReply;
 
   // Scroll into view when highlighted
   useEffect(() => {
-    if ((isHighlighted || hasHighlightedReply) && commentRef.current) {
-      // Scroll the comment into view if it's highlighted
+    if (isHighlighted && commentRef.current) {
       commentRef.current.scrollIntoView({ 
         behavior: 'smooth', 
         block: 'center'
+      });
+    } else if (hasHighlightedReply && commentRef.current) {
+      commentRef.current.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'start' 
       });
     }
   }, [isHighlighted, hasHighlightedReply]);
@@ -88,7 +93,8 @@ const CommentThread = ({ comment, replies = [] }) => {
             <CommentContent 
               key={reply._id} 
               comment={reply} 
-              isReply={true} 
+              isReply={true}
+              isHighlighted={reply._id === highlightedCommentId}
             />
           ))}
         </Box>

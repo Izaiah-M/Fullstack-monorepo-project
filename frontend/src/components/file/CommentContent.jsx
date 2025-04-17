@@ -1,9 +1,24 @@
+import { useRef, useEffect } from "react";
 import { Box, Typography, CircularProgress } from "@mui/material";
 import { useUser } from "../../hooks/users";
 import UserAvatar from "../common/UserAvatar";
 
-const CommentContent = ({ comment, isReply = false }) => {
+const CommentContent = ({ comment, isReply = false, isHighlighted = false }) => {
   const { isLoading, isError, data: author, error } = useUser(comment.authorId);
+  const contentRef = useRef(null);
+  
+  // If this is a reply and it's highlighted, scroll it into view
+  useEffect(() => {
+    if (isReply && isHighlighted && contentRef.current) {
+      // Use a slight delay to ensure parent container has already scrolled
+      setTimeout(() => {
+        contentRef.current.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center'
+        });
+      }, 100);
+    }
+  }, [isReply, isHighlighted]);
 
   if (isLoading) {
     return (
@@ -27,6 +42,7 @@ const CommentContent = ({ comment, isReply = false }) => {
 
   return (
     <Box 
+      ref={contentRef}
       data-testid={`comment-content-${comment._id}`}
       sx={{ 
         py: 1,
@@ -34,6 +50,11 @@ const CommentContent = ({ comment, isReply = false }) => {
         pl: isReply ? 2 : 0,
         mt: isReply ? 1 : 0,
         mb: isReply ? 1 : 0,
+        transition: 'all 0.3s ease',
+        bgcolor: isHighlighted ? 'rgba(255, 236, 179, 0.5)' : 'transparent',
+        borderRadius: 1,
+        p: isHighlighted ? 1 : undefined,
+        boxShadow: isHighlighted ? '0 0 8px rgba(251, 192, 45, 0.8)' : 'none',
       }}
     >
       <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
