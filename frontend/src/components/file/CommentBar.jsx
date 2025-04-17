@@ -1,7 +1,9 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { Box, Typography, CircularProgress } from "@mui/material";
 import { useInfiniteComments } from "../../hooks/comments";
 import CommentThread from "./CommentThread";
+import { useSearchParams } from "react-router-dom";
+import { useCommentHighlight } from "../../context/commentContext";
 
 /**
  * Sidebar component that shows all comments for a file
@@ -10,6 +12,12 @@ const CommentBar = ({ fileId }) => {
   // Reference to the scroll container for intersection observer
   const containerRef = useRef(null);
   const loadMoreRef = useRef(null);
+  const [searchParams] = useSearchParams();
+  const targetCommentId = searchParams.get("commentId");
+  const { highlightComment } = useCommentHighlight();
+  
+  // Track if we're still searching for a target comment
+  const [isSearchingComment, setIsSearchingComment] = useState(!!targetCommentId);
   
   const { 
     data, 
@@ -21,7 +29,7 @@ const CommentBar = ({ fileId }) => {
     error
   } = useInfiniteComments({ fileId, limit: 10 });
   
-  // Setup intersection observer for infinite scrolling
+  // Setup normal intersection observer for infinite scrolling
   useEffect(() => {
     // Skip if we're still loading or there's nothing more to load
     if (isLoading || !hasNextPage || isFetchingNextPage || !loadMoreRef.current) return;
@@ -45,7 +53,7 @@ const CommentBar = ({ fileId }) => {
   const processComments = () => {
     if (!data?.pages) return { topLevelComments: [], repliesMap: {} };
     
-    // Merge all comments from all pages
+    // Merge all comments from all loaded pages
     const allComments = data.pages.flatMap(page => page.comments);
     
     // Organize comments into parent comments and their replies
@@ -76,6 +84,33 @@ const CommentBar = ({ fileId }) => {
   };
   
   const { topLevelComments, repliesMap } = processComments();
+  
+  // Check if we need to load more pages to find a comment
+  useEffect(() => {
+    if (!targetCommentId || !isSearchingComment || isLoading || isFetchingNextPage) return;
+    
+    const allComments = data?.pages?.flatMap(page => page.comments) || [];
+    
+    // Check if target comment is in the current dataset, either as a comment or a reply
+    const foundComment = allComments.find(comment => comment._id === targetCommentId);
+    const foundParentWithReply = allComments.find(comment => 
+      comment.parentId === targetCommentId || 
+      repliesMap[comment._id]?.some(reply => reply._id === targetCommentId)
+    );
+    
+    if (foundComment || foundParentWithReply) {
+      // Found the comment, highlight it
+      highlightComment(targetCommentId);
+      setIsSearchingComment(false);
+    } else if (hasNextPage) {
+      // If we haven't found the comment and there are more pages, fetch the next page
+      fetchNextPage();
+    } else {
+      // No more pages but comment not found, stop searching
+      setIsSearchingComment(false);
+    }
+  }, [data, targetCommentId, isSearchingComment, isLoading, isFetchingNextPage, 
+      fetchNextPage, hasNextPage, highlightComment, repliesMap]);
 
   if (isError) {
     return (
@@ -135,8 +170,24 @@ const CommentBar = ({ fileId }) => {
             ))}
           </Box>
           
-          {/* Load more indicator */}
-          {hasNextPage && (
+          {/* Show searching indicator if we're actively looking for a comment */}
+          {isSearchingComment && hasNextPage && (
+            <Box 
+              sx={{ 
+                textAlign: 'center', 
+                py: 2 
+              }}
+              data-testid="finding-comment"
+            >
+              <CircularProgress size={24} />
+              <Typography variant="body2" sx={{ mt: 1 }}>
+                Searching for comment...
+              </Typography>
+            </Box>
+          )}
+          
+          {/* Normal load more indicator for infinite scrolling */}
+          {hasNextPage && !isSearchingComment && (
             <Box 
               ref={loadMoreRef} 
               sx={{ 

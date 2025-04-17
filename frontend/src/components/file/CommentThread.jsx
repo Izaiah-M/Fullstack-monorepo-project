@@ -8,7 +8,7 @@ import {
   DialogTitle, 
   DialogContent, 
   DialogActions, 
-  TextField, 
+  TextField
 } from "@mui/material";
 import { useCreateComment } from "../../hooks/comments";
 import { useCommentHighlight } from "../../context/commentContext";
@@ -24,16 +24,21 @@ const CommentThread = ({ comment, replies = [] }) => {
   const { highlightedCommentId } = useCommentHighlight();
   
   const commentRef = useRef(null);
+  
+  // Determine if this comment or any of its replies should be highlighted
+  const isHighlighted = highlightedCommentId === comment._id;
+  const hasHighlightedReply = replies.some(reply => highlightedCommentId === reply._id);
 
   // Scroll into view when highlighted
   useEffect(() => {
-    if (highlightedCommentId === comment._id && commentRef.current) {
+    if ((isHighlighted || hasHighlightedReply) && commentRef.current) {
+      // Scroll the comment into view if it's highlighted
       commentRef.current.scrollIntoView({ 
         behavior: 'smooth', 
         block: 'center'
       });
     }
-  }, [highlightedCommentId, comment._id]);
+  }, [isHighlighted, hasHighlightedReply]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -66,7 +71,8 @@ const CommentThread = ({ comment, replies = [] }) => {
         mb: 2, 
         p: 2,
         transition: 'background-color 0.3s ease',
-        bgcolor: highlightedCommentId === comment._id ? 'rgba(0, 0, 0, 0.08)' : 'background.paper',
+        bgcolor: isHighlighted ? 'rgba(255, 236, 179, 0.5)' : 'background.paper',
+        boxShadow: isHighlighted ? '0 0 8px rgba(251, 192, 45, 0.8)' : 'none',
       }}
     >
       {/* Parent comment */}
@@ -102,7 +108,10 @@ const CommentThread = ({ comment, replies = [] }) => {
       {/* Reply dialog */}
       <Dialog 
         open={open} 
-        onClose={() => setOpen(false)}
+        onClose={() => {
+          setReplyText("");
+          setOpen(false);
+        }}
         data-testid={`reply-dialog-${comment._id}`}
       >
         <Box component="form" onSubmit={handleSubmit}>
