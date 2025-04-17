@@ -4,97 +4,96 @@ Firstly, I want to extend a huge thank you for the opportunity to work on this a
 
 Below is a summary of the features I implemented, along with key enhancements and refactors I made throughout the project:
 
----
+## ✅ 1. Comment Replies
+**What it enables**: Project owners and reviewers can have structured, conversational threads under each comment — making discussions more organized and easier to follow.
 
-## ✅ Feature 1: Comment Replies
-**Objective**: Allow project owners to reply to comments and have threaded conversations.
+- **Nested replies** are rendered visually with indents for clarity.
+- Users can seamlessly add a reply directly below any comment.
+- Replies are grouped under their parent comments for easier reading.
 
-### Frontend
-- **`File.jsx`**: Integrated comment threads, reply inputs, and nested UI structure.
-- **`comments.js`**: Updated the hook to support `parentID`, enabling the backend to differentiate between normal comments and replies.
+## ✅ 2. Real-Time Comment Updates
+**What it enables**: Comments appear instantly across all connected clients — no refresh needed.
 
-### Backend
-- **`comment.service.js`**: Extended the `createComment` service to accept and handle `parentID`.
-- **`comment.schema.js`**: Updated the schema to store and resolve replies.
+- Uses **Socket.IO** to broadcast new comments and replies live.
+- Clicking a dot marker scrolls directly to the associated comment, enhancing navigation. (This was added just to enhance UX, though it was not a requirement)
+- Optimized to avoid duplicate comments when receiving socket messages.
 
----
+## ✅ 3. Lazy Loading (Infinite Scroll) for Comments
+**What it enables**: Smooth performance when viewing files with many comments.
 
-## ✅ Feature 2: Real-Time Comment Updates
-**Objective**: Enable live updates of comments on a file view.
+- Users can scroll naturally through large comment threads without long initial load times.
+- Top-level comments are paginated, and their replies are aggregated efficiently.
+- Built to ensure no misalignment between parent and child comments across pages.
 
-### Frontend
-- Created a custom hook `useLiveComments` to manage live comment streaming.
-- Integrated socket headers into `backend.js` to fix the duplicate comment issue.
-- Bonus: Clicking a dot (marker) on the image scrolls directly to the related comment.
+## ✅ 4. Global Search Across Projects, Files, and Comments
+**What it enables**: Users can quickly find any project, file, or comment from a single search bar.
 
-### Backend
-- **`comment.service.js`**: Added logic to prevent duplicate comments by managing socket responses.
-- **`index.js`**: Enhanced socket event handling for real-time functionality.
+- Real-time feel via **debounced inputs** and optimized queries.
+- **Backend search module** scans multiple collections and returns relevant matches.
+- **Redis caching** improves response speed and reduces DB load.
+- Results are clickable and lead directly to their respective locations.
 
----
 
-## ✅ Feature 3: Lazy Loading Comments
-**Objective**: Implement infinite scroll for comments to optimize performance.
+## Additional UX Enhancements
+- Clicking on a marker **highlights the relevant comment thread**(As mentioned earlier).
+- **ErrorBoundary** added to gracefully handle unexpected UI crashes.
 
-### Frontend
-- **`File.jsx`**: Integrated infinite scrolling logic into the comments section.
-- **`Comments.jsx`**: Added a custom hook for paginated data fetching.
 
-### Backend
-- **`comment.schema.js`**, **`comment.service.js`**: Introduced pagination logic and query adjustments.
+## Testing
+All major features are fully tested:
 
-### Challenge + Solution
-Pagination with threaded comments was complex due to potential misalignment between parents and children across pages. The solution involved fetching top-level comments first, then aggregating their replies, ensuring consistency in thread rendering.
+- Includes tests for **replying to comments, real-time updates, infinite scroll, and global search**.
+- Ensures **core user workflows are reliable**
 
----
+### Running Tests
+To run tests locally, change to the test folder and run the following commands:
+```bash
+npm install
+npm test
+```
 
-## ✅ Feature 4: Global Search
-**Objective**: Implement a unified search across projects, files, and comments.
+### CI/CD
+A GitHub Actions workflow is included under `.github/workflows/` to:
 
-### Frontend
-- Created a global search component with debounced inputs for real-time feel.
+- Automatically install dependencies.
+- Run tests on every push or PR.
+- Provide feedback on test status before deployment.
 
-### Backend
-- Created a `search.module` for searching across collections.
-- Added relevant DB indexes for efficient querying.
 
-### Enhancements
-- Introduced Redis caching to improve performance.
-- Solved state management and race conditions for fast, smooth search UX.
+## Architecture & Maintainability Improvements
 
----
+### Backend Structure
+- Modularized into domains: `auth`, `comments`, `projects`, `files`, etc.
+- Each module contains its own `controller`, `service`, `routes`, and `schema`.
+- Centralized:
+  - **Socket config**, **DB config**, **Redis config** in `/config`
+  - **Error middleware** and a **global DB error handler**
+  - **Helper utilities** in `/utils`
+  - **App bootstrap** in `index.js`
 
-## 💡 Bonus User Experience Enhancements
-- Highlighted comment threads when clicking on a file dot marker.
-- Ensured dot click scrolls to relevant comment.
+### Frontend Structure
+- Under source you'll find, **hooks**, **context**, **pages** **components** and under **components** you will find that each **page** has a dedicated **components** folder, making code in pages cleaner and more maintainable.
+- All API interactions are centralized in `/api`.
 
----
+## Future Considerations
 
-## ✅ Refactoring
+### User Experience
+- Improve UI feedback for error states (e.g. failed socket connections, search failures).
+- Add skeleton loaders and retry logic for all async operations.
 
-### Backend
-- **Restructured to improve maintainability and scalability**:
-  - `config/`: Socket, DB, Redis configs.
-  - `models/`: All Mongoose models using ODM/repository pattern.
-  - `modules/`: Separated features by folder: `auth`, `comments`, `projects`, `files` etc., each with `*.controller.js`, `*.service.js`, `*.routes.js`, and `*.schema.js` files.
-  - `routes/`: Centralized route management via `index.js`.
-  - `middleware/`: Middleware handling.
-  - `utils/`: Helper utilities.
-  - `index.js`: App entry point.
-
-- **Other Enhancements**:
-  - Wrapped DB ops in try/catch blocks for better error handling.
-  - Introduced rotating logs for robust observability.
-
-### Frontend
-- **Structural Improvements**:
-  - `api/`: API calls centralized.
-  - `components/`: Structured by page context.
-  - `hooks/`, `context/`, `pages/`: Organized for better dev experience.
-  - Added ErrorBoundary in `components/common` to handle unexpected crashes.
+### Backend & DevOps
+- Extend **Redis caching** to frequently accessed project/file endpoints.
+- Implement rate limiting.
+- Add API versioning for long-term scalability.
 
 ---
 
-## 🧪 Tests
-- Added tests to validate all features listed above.
-- Covered core user flows like commenting, replying, real-time updates, lazy loading, and searching.
+## Running the App
+
+The app runs exactly as described in the original instructions:
+
+```bash
+docker compose up --build --watch
+```
+
+This will start the frontend, backend, and database containers using Docker.
