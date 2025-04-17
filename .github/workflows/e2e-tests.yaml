@@ -1,0 +1,84 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Docker Compose
+      uses: actions/setup-node@v4
+      with:
+        node-version: lts/*
+    
+    - name: Install dependencies
+      run: |
+        cd frontend
+        npm ci
+        cd ../backend
+        npm ci
+        cd ../tests
+        npm ci
+    
+    - name: Install Playwright Browsers
+      run: |
+        cd tests
+        npx playwright install --with-deps
+    
+    - name: Start services with Docker Compose
+      run: |
+        # Create .env file with CI-specific configurations
+        echo "DOMAIN=localhost" > .env
+        echo "FRONTEND_ORIGIN=http://localhost:3000" >> .env
+        echo "MONGO_URI=mongodb://root:1234@database:27017" >> .env
+        echo "REDIS_URI=redis://default:1234@redis:6379" >> .env
+        echo "COOKIE_SECRET=${{ secrets.COOKIE_SECRET }}" >> .env
+        
+        # Pull and build services
+        docker-compose pull
+        docker-compose build
+        
+        # Start services in detached mode
+        docker-compose up -d
+        
+        # Wait for services to be ready
+        sleep 30
+    
+    - name: Run Playwright tests
+      run: |
+        cd tests
+        npx playwright test
+      env:
+        # Pass any necessary environment variables
+        FRONTEND_URL: http://localhost:3000
+        BACKEND_URL: http://localhost:3001
+    
+    - name: Stop services
+      if: always()
+      run: docker-compose down
+    
+    - name: Upload test reports
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: playwright-report
+        path: tests/playwright-report/
+        retention-days: 30
+    
+    - name: Upload test screenshots
+      uses: actions/upload-artifact@v4
+      if: failure()
+      with:
+        name: test-artifacts
+        path: |
+          tests/test-results/
+          tests/playwright-report/
+        retention-days: 5

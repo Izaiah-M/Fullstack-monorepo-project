@@ -4,7 +4,13 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "playwright test",
+    "test:ci": "playwright test --reporter=github",
+    "test:debug": "playwright test --debug",
+    "test:headed": "playwright test --headed",
+    "test:report": "playwright show-report",
+    "test:update-snapshots": "playwright test --update-snapshots"
   },
   "keywords": [],
   "author": "",
