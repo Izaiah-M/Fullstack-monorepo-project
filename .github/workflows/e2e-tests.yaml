@@ -2,9 +2,9 @@ name: E2E Tests
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ main ]
 
 jobs:
   test:
@@ -23,9 +23,9 @@ jobs:
       run: |
         cd frontend
         npm ci
-        cd ../backend
+        cd backend
         npm ci
-        cd ../tests
+        cd tests
         npm ci
     
     - name: Install Playwright Browsers
