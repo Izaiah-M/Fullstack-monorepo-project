@@ -9,7 +9,6 @@ import {
   DialogContent, 
   DialogActions, 
   TextField, 
-  Typography 
 } from "@mui/material";
 import { useCreateComment } from "../../hooks/comments";
 import { useCommentHighlight } from "../../context/commentContext";
