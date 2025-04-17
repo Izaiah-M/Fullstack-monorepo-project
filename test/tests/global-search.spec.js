@@ -15,20 +15,16 @@ import {
   test.beforeAll(async ({ browser }) => {
     accounts = await createTestAccounts(browser);
     
-    // Create test data with searchable names
-    // First project with "search" in the name
     projects[0] = await backendRequest(accounts.owner.context, "post", `/projects`, {
       headers: { "Content-Type": "application/json" },
       data: { name: "Project for search testing", description: "This is a searchable project" },
     });
     
-    // Second project with different name
     projects[1] = await backendRequest(accounts.owner.context, "post", `/projects`, {
       headers: { "Content-Type": "application/json" },
       data: { name: "Second project" },
     });
     
-    // File with "search" in the name
     files[0] = await backendRequest(accounts.owner.context, "post", "/files", {
       multipart: {
         projectId: projects[0]._id,
@@ -42,7 +38,6 @@ import {
       },
     });
     
-    // File with different name
     files[1] = await backendRequest(accounts.owner.context, "post", "/files", {
       multipart: {
         projectId: projects[1]._id,
@@ -56,7 +51,6 @@ import {
       },
     });
     
-    // Add comments with searchable content
     comments[0] = await backendRequest(accounts.owner.context, "post", "/comments", {
       headers: { "Content-Type": "application/json" },
       data: {

@@ -23,6 +23,7 @@ const ImageViewer = ({ file }) => {
   const markerContainerRef = useRef(null);
   const [open, setOpen] = useState(false);
   const [clickCoords, setClickCoords] = useState({ x: 0, y: 0 });
+  const [commentText, setCommentText] = useState("");
   const [, setSearchParams] = useSearchParams();
   const { highlightComment } = useCommentHighlight();
 
@@ -47,22 +48,30 @@ const ImageViewer = ({ file }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const commentBody = e.target.elements.body.value.trim();
+    const trimmedComment = commentText.trim();
     
-    if (!commentBody) return;
+    if (!trimmedComment) return;
     
     createComment.mutate(
       {
         fileId: file._id,
-        body: commentBody,
+        body: trimmedComment,
         x: clickCoords.x,
         y: clickCoords.y,
       },
       { 
-        onSuccess: () => setOpen(false),
+        onSuccess: () => {
+          setCommentText("");
+          setOpen(false);
+        },
         onError: (error) => console.error("Failed to create comment:", error) 
       },
     );
+  };
+  
+  const handleClose = () => {
+    setCommentText("");
+    setOpen(false);
   };
 
   // Match marker layer size to image
@@ -164,7 +173,7 @@ const ImageViewer = ({ file }) => {
       {/* Add comment dialog */}
       <Dialog 
         open={open} 
-        onClose={() => setOpen(false)}
+        onClose={handleClose}
         data-testid="add-comment-dialog"
       >
         <Box component="form" onSubmit={handleSubmit}>
@@ -179,21 +188,23 @@ const ImageViewer = ({ file }) => {
               multiline
               rows={3}
               required
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              error={createComment.isError || (commentText !== "" && commentText.trim() === "")}
+              helperText={
+                createComment.isError 
+                  ? createComment.error?.message || 'Failed to create comment' 
+                  : commentText !== "" && commentText.trim() === "" 
+                  ? "Comment cannot be empty" 
+                  : ""
+              }
               data-testid="comment-input"
             />
-            {createComment.isError && (
-              <Typography 
-                color="error"
-                data-testid="comment-error"
-              >
-                {createComment.error?.message || 'Failed to create comment'}
-              </Typography>
-            )}
           </DialogContent>
           <DialogActions>
             <Button 
               data-testid="cancel-comment"
-              onClick={() => setOpen(false)}
+              onClick={handleClose}
             >
               Cancel
             </Button>
@@ -201,7 +212,7 @@ const ImageViewer = ({ file }) => {
               type="submit" 
               variant="contained"
               data-testid="submit-comment"
-              disabled={createComment.isLoading}
+              disabled={createComment.isLoading || !commentText.trim()}
             >
               {createComment.isLoading ? 'Submitting...' : 'Submit'}
             </Button>

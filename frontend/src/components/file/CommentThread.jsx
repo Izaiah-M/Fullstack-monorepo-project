@@ -20,6 +20,7 @@ import CommentContent from "./CommentContent";
  */
 const CommentThread = ({ comment, replies = [] }) => {
   const [open, setOpen] = useState(false);
+  const [replyText, setReplyText] = useState("");
   const createComment = useCreateComment({ fileId: comment.fileId });
   const { highlightedCommentId } = useCommentHighlight();
   
@@ -37,18 +38,21 @@ const CommentThread = ({ comment, replies = [] }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const replyBody = e.target.elements.body.value.trim();
+    const trimmedReply = replyText.trim();
     
-    if (!replyBody) return;
+    if (!trimmedReply) return;
     
     createComment.mutate(
       {
         fileId: comment.fileId,
-        body: replyBody,
+        body: trimmedReply,
         parentId: comment._id,
       },
       { 
-        onSuccess: () => setOpen(false),
+        onSuccess: () => {
+          setReplyText(""); 
+          setOpen(false);
+        },
         onError: (error) => console.error("Failed to create reply:", error)
       },
     );
@@ -114,20 +118,25 @@ const CommentThread = ({ comment, replies = [] }) => {
               multiline
               rows={3}
               required
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+              error={createComment.isError || (replyText !== "" && replyText.trim() === "")}
+              helperText={
+                createComment.isError 
+                  ? createComment.error?.message || 'Failed to create reply' 
+                  : replyText !== "" && replyText.trim() === "" 
+                  ? "Comment cannot be empty" 
+                  : ""
+              }
               data-testid="reply-input"
             />
-            {createComment.isError && (
-              <Typography 
-                color="error"
-                data-testid="reply-error"
-              >
-                {createComment.error?.message || 'Failed to create reply'}
-              </Typography>
-            )}
           </DialogContent>
           <DialogActions>
             <Button 
-              onClick={() => setOpen(false)}
+              onClick={() => {
+                setReplyText("");
+                setOpen(false);
+              }}
               data-testid="cancel-reply"
             >
               Cancel
@@ -136,7 +145,7 @@ const CommentThread = ({ comment, replies = [] }) => {
               type="submit" 
               variant="contained" 
               color="primary"
-              disabled={createComment.isLoading}
+              disabled={createComment.isLoading || !replyText.trim()}
               data-testid="submit-reply"
             >
               {createComment.isLoading ? 'Submitting...' : 'Submit'}
