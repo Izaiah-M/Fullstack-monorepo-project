@@ -23,7 +23,6 @@ import FolderIcon from "@mui/icons-material/Folder";
 import CommentIcon from "@mui/icons-material/Comment";
 import { useSearch } from "../../hooks/search";
 
-// Loading skeleton for search results
 const SearchSkeleton = () => (
   <Box sx={{ p: 2 }}>
     <Skeleton variant="text" width="40%" height={24} sx={{ mb: 2 }} />
@@ -75,7 +74,6 @@ const GlobalSearch = () => {
     }
   };
 
-  // Determine what content to render in the dropdown
   const renderSearchContent = () => {
     if (isSearching) {
       return <SearchSkeleton />;
@@ -94,7 +92,6 @@ const GlobalSearch = () => {
     if (hasResults) {
       return (
         <List dense>
-          {/* Projects section - only show if there are projects OR there are results in multiple categories */}
           {results.projects?.length > 0 && (resultCategoryCount > 1 ? true : categoriesWithResults.hasProjects) && (
             <>
               <ListItem sx={{ py: 0.5 }}>
@@ -147,7 +144,6 @@ const GlobalSearch = () => {
                 </ListItemButton>
               ))}
               
-              {/* Only show divider if there are comments after this section */}
               {results.comments?.length > 0 && resultCategoryCount > 1 && <Divider component="li" />}
             </>
           )}
@@ -181,7 +177,6 @@ const GlobalSearch = () => {
       );
     }
     
-    // Empty search box or other cases
     return null;
   };
   

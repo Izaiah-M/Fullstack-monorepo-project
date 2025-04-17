@@ -58,7 +58,7 @@ const ProtectedRoute = () => {
   return <Outlet />;
 };
 
-// Log error function for monitoring/debugging
+// Log error function that can be used for monitoring/debugging
 const logError = (error, info) => {
   // In a production app, we could send this to an error tracking service like sentury
   console.error("Caught an error:", error, info);

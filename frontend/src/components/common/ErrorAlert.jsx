@@ -23,14 +23,12 @@ const ErrorAlert = ({
   variant = "standard",
   ...props 
 }) => {
-  // Handle the action - either navigate to a link or call a handler function
   const handleAction = () => {
     if (actionHandler && typeof actionHandler === 'function') {
       actionHandler();
     }
   };
 
-  // Determine if we should use a Link or a regular Button
   const ButtonComponent = actionLink ? Link : Button;
   const buttonProps = actionLink ? { to: actionLink } : { onClick: handleAction };
   

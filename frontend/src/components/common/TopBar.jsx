@@ -61,7 +61,6 @@ const TopBar = ({ title, back = false }) => {
             <img src="/filestage.png" alt="Filestage" style={{ width: 100 }} />
           )}
 
-        {/* Add the global search component */}
         <Box sx={{ flexGrow: 1, display: "flex", justifyContent: "center" }}>
           <GlobalSearch />
         </Box>

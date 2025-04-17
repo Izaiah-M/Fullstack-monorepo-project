@@ -9,14 +9,12 @@ import { useCommentHighlight } from "../../context/commentContext";
  * Sidebar component that shows all comments for a file
  */
 const CommentBar = ({ fileId }) => {
-  // Reference to the scroll container for intersection observer
   const containerRef = useRef(null);
   const loadMoreRef = useRef(null);
   const [searchParams] = useSearchParams();
   const targetCommentId = searchParams.get("commentId");
   const { highlightComment } = useCommentHighlight();
   
-  // Track if we're still searching for a target comment
   const [isSearchingComment, setIsSearchingComment] = useState(!!targetCommentId);
   
   const { 

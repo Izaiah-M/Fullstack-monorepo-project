@@ -4,7 +4,6 @@ import { useEffect } from 'react';
 import io from 'socket.io-client';
 import { setSocketId, getSocketId } from '../api/backend';
 
-// Simple paginated query - returns only the page requested
 export function useComments({ fileId, page = 1, limit = 15 }) {
   return useQuery({
     queryKey: ["comments", fileId, page, limit],
@@ -14,7 +13,6 @@ export function useComments({ fileId, page = 1, limit = 15 }) {
   });
 }
 
-// Infinite query - loads and combines multiple pages
 export function useInfiniteComments({ fileId, limit = 10 }) {
   return useInfiniteQuery({
     queryKey: ["infinite-comments", fileId],
@@ -35,7 +33,6 @@ export function useCreateComment({ fileId }) {
 
   return useMutation({
     mutationFn: ({ body, x, y, parentId }) => {
-      // Create the request body
       const requestBody = { fileId, body };
       
       // Add coordinates for new comments
@@ -86,7 +83,7 @@ export function useLiveComments(fileId) {
         return;
       }
       
-      console.log('Received live comment update:', comment);
+      // console.log('Received live comment update:', comment);
       
       // Update infinite query data
       queryClient.setQueryData(

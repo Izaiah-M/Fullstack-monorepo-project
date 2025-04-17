@@ -2,9 +2,6 @@ import { Box, Typography, CircularProgress } from "@mui/material";
 import { useUser } from "../../hooks/users";
 import UserAvatar from "../common/UserAvatar";
 
-/**
- * Displays the content of a single comment and the aurthor's information.
- */
 const CommentContent = ({ comment, isReply = false }) => {
   const { isLoading, isError, data: author, error } = useUser(comment.authorId);
 

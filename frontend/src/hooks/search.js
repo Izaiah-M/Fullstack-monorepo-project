@@ -6,23 +6,19 @@ export function useSearch() {
     const [query, setQuery] = useState("");
     const [isOpen, setIsOpen] = useState(false);
     const [debouncedQuery, setDebouncedQuery] = useState("");
-    // Track if we've made at least one search request
     const [hasSearched, setHasSearched] = useState(false);
   
-    // Handle debounce in a separate effect
     useEffect(() => {
       const timer = setTimeout(() => {
         setDebouncedQuery(query);
-      }, 300); // Increased debounce time for stability
+      }, 300); 
   
       return () => clearTimeout(timer);
     }, [query]);
   
-    // Use useCallback to memoize the search function
     const searchFn = useCallback(async () => {
       if (!debouncedQuery) return { projects: [], files: [], comments: [] };
       
-      // Mark that we've made a search request
       setHasSearched(true);
       
       try {
@@ -46,13 +42,12 @@ export function useSearch() {
       queryKey: ["search", debouncedQuery],
       queryFn: searchFn,
       enabled: debouncedQuery.length > 0,
-      staleTime: 1000 * 60 * 5,  // 5 minutes
-      cacheTime: 1000 * 60 * 30, // 30 minutes
+      staleTime: 1000 * 60 * 5,  
+      cacheTime: 1000 * 60 * 30, 
       refetchOnWindowFocus: false,
       refetchOnMount: true,
     });
   
-    // Ensure that the results are always properly initialized arrays
     const safeResults = {
       projects: Array.isArray(results.projects) ? results.projects : [],
       files: Array.isArray(results.files) ? results.files : [],
@@ -67,18 +62,14 @@ export function useSearch() {
     const showResults = query.length > 0;
     const isSearching = isLoading || isFetching;
     
-    // Fix: We only want to reset hasSearched when the query completely changes, not just on typing
-    // This ensures the "no results" message stays visible
     useEffect(() => {
       if (query === '') {
         setHasSearched(false);
       }
     }, [query]);
     
-    // Need to have searched, not be searching, have a query, and have no results
     const showNoResults = hasSearched && !isSearching && debouncedQuery.length > 0 && !hasResults;
   
-    // Manage dropdown visibility
     useEffect(() => {
       if (showResults) {
         setIsOpen(true);
@@ -92,7 +83,6 @@ export function useSearch() {
     }, [showResults]);
   
     const handleSearchBlur = useCallback(() => {
-      // Fix: Increase the timeout slightly to prevent flickering
       const timer = setTimeout(() => setIsOpen(false), 300);
       return () => clearTimeout(timer);
     }, []);
@@ -104,14 +94,14 @@ export function useSearch() {
       setHasSearched(false);
     }, []);
     
-    // New: Calculate which categories have results
+    // Calculate which categories have results
     const categoriesWithResults = {
       hasProjects: safeResults.projects.length > 0,
       hasFiles: safeResults.files.length > 0,
       hasComments: safeResults.comments.length > 0
     };
     
-    // New: Count how many categories have results
+    // Count how many categories have results
     const resultCategoryCount = Object.values(categoriesWithResults)
       .filter(Boolean).length;
   
@@ -129,7 +119,6 @@ export function useSearch() {
       handleSearchFocus,
       handleSearchBlur,
       clearSearch,
-      // Export new properties
       categoriesWithResults,
       resultCategoryCount
     };
