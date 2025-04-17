@@ -14,11 +14,6 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
     
-    - name: Set up Docker Compose
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y docker-compose
-    
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
@@ -29,12 +24,20 @@ jobs:
       with:
         path: |
           ~/.npm
-          backend/node_modules
-          frontend/node_modules
-          test/node_modules
-        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          **/node_modules
+        key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
         restore-keys: |
-          ${{ runner.os }}-node-
+          ${{ runner.os }}-npm-
+    
+    - name: Cache Playwright browsers
+      uses: actions/cache@v4
+      id: playwright-cache
+      with:
+        path: |
+          ~/.cache/ms-playwright
+        key: ${{ runner.os }}-playwright-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-playwright-
     
     - name: Install Backend Dependencies
       working-directory: backend
@@ -51,37 +54,26 @@ jobs:
     - name: Install Playwright Browsers
       working-directory: test
       run: npx playwright install --with-deps
+      if: steps.playwright-cache.outputs.cache-hit != 'true'
     
-    - name: Start services with Docker Compose
+    - name: Start Backend
+      working-directory: backend
       run: |
-        # Create .env file with CI-specific configurations
-        echo "DOMAIN=localhost" > .env
-        echo "FRONTEND_ORIGIN=http://localhost:3000" >> .env
-        echo "MONGO_URI=mongodb://root:1234@database:27017" >> .env
-        echo "REDIS_URI=redis://default:1234@redis:6379" >> .env
-        echo "COOKIE_SECRET=${{ secrets.COOKIE_SECRET }}" >> .env
-        
-        # Pull and build services
-        docker-compose pull
-        docker-compose build
-        
-        # Start services in detached mode
-        docker-compose up -d
-        
-        # Wait for services to be ready
-        sleep 30
+        npm start &
+        sleep 5
+    
+    - name: Start Frontend
+      working-directory: frontend
+      run: |
+        npm start &
+        sleep 5
     
     - name: Run Playwright tests
       working-directory: test
       run: npx playwright test
       env:
-        # Pass any necessary environment variables
         FRONTEND_URL: http://localhost:3000
         BACKEND_URL: http://localhost:3001
-    
-    - name: Stop services
-      if: always()
-      run: docker-compose down
     
     - name: Upload test reports
       uses: actions/upload-artifact@v4
