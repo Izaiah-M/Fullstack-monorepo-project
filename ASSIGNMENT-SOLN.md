@@ -4,28 +4,28 @@ Firstly, I want to extend a huge thank you for the opportunity to work on this a
 
 Below is a summary of the features I implemented, along with key enhancements and refactors I made throughout the project:
 
-## ✅ 1. Comment Replies
+## ✅ 1. Comment Replies  
 **What it enables**: Project owners and reviewers can have structured, conversational threads under each comment — making discussions more organized and easier to follow.
 
 - **Nested replies** are rendered visually with indents for clarity.
 - Users can seamlessly add a reply directly below any comment.
 - Replies are grouped under their parent comments for easier reading.
 
-## ✅ 2. Real-Time Comment Updates
+## ✅ 2. Real-Time Comment Updates  
 **What it enables**: Comments appear instantly across all connected clients — no refresh needed.
 
 - Uses **Socket.IO** to broadcast new comments and replies live.
 - Clicking a dot marker scrolls directly to the associated comment, enhancing navigation. (This was added just to enhance UX, though it was not a requirement)
 - Optimized to avoid duplicate comments when receiving socket messages.
 
-## ✅ 3. Lazy Loading (Infinite Scroll) for Comments
+## ✅ 3. Lazy Loading (Infinite Scroll) for Comments  
 **What it enables**: Smooth performance when viewing files with many comments.
 
 - Users can scroll naturally through large comment threads without long initial load times.
 - Top-level comments are paginated, and their replies are aggregated efficiently.
 - Built to ensure no misalignment between parent and child comments across pages.
 
-## ✅ 4. Global Search Across Projects, Files, and Comments
+## ✅ 4. Global Search Across Projects, Files, and Comments  
 **What it enables**: Users can quickly find any project, file, or comment from a single search bar.
 
 - Real-time feel via **debounced inputs** and optimized queries.
@@ -33,26 +33,33 @@ Below is a summary of the features I implemented, along with key enhancements an
 - **Redis caching** improves response speed and reduces DB load.
 - Results are clickable and lead directly to their respective locations.
 
+## ✅ 5. Server Side logging  
+**What it enables**: Easier debugging and monitoring.
 
-## Additional UX Enhancements
-- Clicking on a marker **highlights the relevant comment thread**(As mentioned earlier).
+- **Request logging** implemented at the middleware level.
+- All logs are written to both **console** and a **rotating file log**, with logs rotated once daily at midnight.
+- Helpful for auditing and troubleshooting in production environments.
+
+## Additional UX Enhancements  
+- Clicking on a marker **highlights the relevant comment thread** (as mentioned earlier).  
 - **ErrorBoundary** added to gracefully handle unexpected UI crashes.
 
 
-## Testing
+## Testing  
 All major features are fully tested:
 
 - Includes tests for **replying to comments, real-time updates, infinite scroll, and global search**.
-- Ensures **core user workflows are reliable**
+- Ensures **core user workflows are reliable**.
 
-### Running Tests
+### Running Tests  
 To run tests locally, change to the test folder and run the following commands:
+
 ```bash
 npm install
 npm test
 ```
 
-### CI/CD
+## CI/CD  
 A GitHub Actions workflow is included under `.github/workflows/` to:
 
 - Automatically install dependencies.
@@ -72,8 +79,10 @@ A GitHub Actions workflow is included under `.github/workflows/` to:
   - **App bootstrap** in `index.js`
 
 ### Frontend Structure
-- Under source you'll find, **hooks**, **context**, **pages** **components** and under **components** you will find that each **page** has a dedicated **components** folder, making code in pages cleaner and more maintainable.
+- Under source you'll find: **hooks**, **context**, **pages**, **components** — and under **components** each **page** has a dedicated **components folder**, making code in pages cleaner and more maintainable.
 - All API interactions are centralized in `/api`.
+
+---
 
 ## Future Considerations
 
@@ -83,8 +92,8 @@ A GitHub Actions workflow is included under `.github/workflows/` to:
 
 ### Backend & DevOps
 - Extend **Redis caching** to frequently accessed project/file endpoints.
-- Implement rate limiting.
-- Add API versioning for long-term scalability.
+- Implement **rate limiting**.
+- Add **API versioning** for long-term scalability.
 
 ---
 
