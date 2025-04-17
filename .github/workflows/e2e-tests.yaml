@@ -2,9 +2,9 @@ name: Test Pipeline
 
 on:
   push:
-    branches: [ main, develop, feature/* ]
+    branches: [ main, develop ]
   pull_request:
-    branches: [ main, develop, feature/* ]
+    branches: [ main, develop ]
 
 jobs:
   test:
@@ -34,7 +34,7 @@ jobs:
         
       - name: Start Docker Compose services
         run: |
-          docker-compose up -d
+          docker compose up -d
           # Wait for services to be ready
           sleep 20
           
@@ -54,4 +54,4 @@ jobs:
           
       - name: Stop Docker Compose services
         if: always()
-        run: docker-compose down
+        run: docker compose down
