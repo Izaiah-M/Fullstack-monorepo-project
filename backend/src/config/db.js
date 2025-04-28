@@ -8,8 +8,8 @@ import { logger } from '../utils/logger.js';
 export async function connectDB() {
   try {
     await mongoose.connect(process.env.MONGO_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
+      useNewUrlParser: true, // to get the supported parser
+      useUnifiedTopology: true, // to use the new topology engine
       dbName: "filestage",
     });
     
