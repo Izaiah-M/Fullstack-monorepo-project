@@ -1,6 +1,4 @@
-# Filestage Assignment: Implementation Summary
-
-Firstly, I want to extend a huge thank you for the opportunity to work on this assignment. 🙏 I had a great time working through it and diving deep into a product-style challenge like this was incredibly fun and rewarding. I can definitely see how exciting working at Filestage would be!
+# Implementation Summary (Failed interview project)
 
 Below is a summary of the features I implemented, along with key enhancements and refactors I made throughout the project:
 
